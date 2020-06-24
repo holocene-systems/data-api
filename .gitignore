@@ -1,0 +1,20 @@
+.vscode
+.pytest_cache/
+notebooks/
+__pycache__/
+*.log
+*.pot
+*.pyc
+.env
+.env.staging
+
+local_settings.py
+media/
+
+# don't track node_modules
+node_modules/
+
+# On our project configuration, the output of the collectstatic will be stored in 
+# static directory. We are ignoring files inside staticfiles but we'll track this # folder itself so that collectstatic can work on Heroku
+static/*
+staticfiles.json

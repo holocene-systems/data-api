@@ -1,0 +1,33 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+pytest = "*"
+pytest-django = "*"
+pytest-xdist = "*"
+
+[packages]
+django = "*"
+django-dotenv = "*"
+djangorestframework = "*"
+djangorestframework-gis = "*"
+dj-database-url = "*"
+python-dotenv = "*"
+psycopg2 = "*"
+whitenoise = "*"
+markdown = "*"
+python-dateutil = "*"
+geojson = "*"
+requests = "*"
+petl = "*"
+pandas = "*"
+tenacity = "*"
+boto3 = "*"
+pynamodb = "*"
+marshmallow = "*"
+django-leaflet = "*"
+
+[requires]
+python_version = "3.8"
