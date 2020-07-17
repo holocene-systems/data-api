@@ -8,6 +8,8 @@ from collections import OrderedDict
 from dateutil.parser import parse
 from dateutil import tz
 import petl as etl
+import pandas as pd
+import numpy as np
 from tenacity import retry, wait_random_exponential, stop_after_attempt, stop_after_delay
 import geojson
 
@@ -104,8 +106,8 @@ def parse_apigw_event(resource, request_args):
 
     return args, table, geo
 
-def parse_and_validate_args(raw_args):
-    """validate request args and parse using Marshmallow pre-processor schema
+def parse_and_validate_args(raw_args,):
+    """validate request args and parse using Marshmallow pre-processor schema.
     
     :param raw_args: kwargs parsed from request
     :type raw_args: dict
@@ -223,7 +225,7 @@ def parse_datetime_args(start_dt, end_dt, interval=None, delta=15):
             timedelta(minutes=delta)
         )
     ]
-    print(len(dts), "datetimes to be queried")
+    # print(len(dts), "datetimes to be queried")
     return dts
 
 @retry(stop=(stop_after_attempt(5) | stop_after_delay(60)), wait=wait_random_exponential(multiplier=2, max=30), reraise=True)
@@ -413,6 +415,8 @@ def apply_zerofill(transformed_results, zerofill, dts):
             return [{k: None for k in RAINFALL_BASE_MODEL_REF.get_attributes().keys()}]
 
 def _format_as_geojson(results, geojson_path):
+    """NOTE: NOT WORKING
+    """
 
     # read the geojson into a PETL table object
     with open(geojson_path) as fp:
@@ -442,7 +446,44 @@ def _format_as_geojson(results, geojson_path):
         ).dicts()
 
     return geojson.FeatureCollection(features=list(features))
+
+def _format_teragon(results):
+    """convert the query results (an array of dictionaries) to a cross-tab
+    with a metadata column for data source
+
+    TODO: this uses both PETL and Pandas to achieve the desired results; 
+    pick one or the other
+    """
+    # use petl for this part of the transformation
+    t = etl.fromdicts(results)
+    #print(etl.header(t))
     
+    t2 = etl\
+        .melt(t, key=['ts', 'id'])\
+        .convert('id', lambda v: "{}-src".format(v), where=lambda r: r.variable == 'src')\
+        .convert('value', float, where=lambda r: r.variable == 'val')\
+        .cutout('variable')\
+        .sort(['ts', 'id'])
+    #print(etl.header(t2))
+
+    df = etl\
+        .rename(t2, 'ts','timestamp')\
+        .todataframe()
+    
+    # Use pandas for the pivoting
+    df2 = pd.pivot_table(
+        df, 
+        index=["timestamp"],
+        columns=["id"],
+        values=["value"],
+        aggfunc=lambda x: ' '.join(x) if isinstance(x, str) else np.sum(x)
+    )
+    # replace the multi-index field with a single row
+    df2.columns = df2.columns.get_level_values(1)
+    # return as a PETL table
+    #return etl.fromdataframe(df2, include_index=True).rename('index', 'timestamp
+    return df2.to_csv()
+
 def _groupby(results, key='ts', sortby='id'):
 
     key_by_these = sorted(list(set(map((lambda r: r[key]), results))))
@@ -508,8 +549,8 @@ def format_results(results, f): #, ref_geojson):
         h = list(etl.header(t))
         return list(etl.data(t)).insert(0,h)
 
-    # elif f in F_CSV:
-    #     return results
+    elif f in F_CSV:
+        return _format_teragon(results)
 
     # elif f in F_MD:
     #     return results

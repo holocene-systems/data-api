@@ -21,7 +21,7 @@ router.register(r'rtrr-table', RtrrObservationViewSet)
 urlpatterns = [
     # high-level routes
     path('v2/garr/', RainfallGarrApiView.as_view()),
-    path('v2/gauges/', RainfallGarrApiView.as_view()),
+    path('v2/gauge/', RainfallGarrApiView.as_view()),
     path('v2/rtrr/', RainfallGarrApiView.as_view()),
     # low-level routes
     path('', include(router.urls))

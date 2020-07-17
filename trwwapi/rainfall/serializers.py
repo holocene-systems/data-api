@@ -17,6 +17,7 @@ from .api_civicmapper.config import (
     TZ_STRING, 
     TZI, 
     TZINFOS,
+    INTERVAL_SUM,
     INTERVAL_15MIN,
     INTERVAL_TRUTHS,
     ZEROFILL_TRUTHS,
@@ -72,6 +73,13 @@ class GaugeSerializer(GeoFeatureModelSerializer):
 
 
 class RequestSchema(Schema):
+    """Custom Marshmallow serializer for request parameters. Used for the high-level api
+
+    :param Schema: [description]
+    :type Schema: [type]
+    :return: [description]
+    :rtype: [type]
+    """
 
     # constants
 
@@ -82,7 +90,7 @@ class RequestSchema(Schema):
     start_dt = fields.DateTime()
     end_dt = fields.DateTime(default=None, missing=None, allow_none=True)
     # rollup, zerofill, and f(ormat) determine how query result gets post-processed
-    rollup = fields.Str(default=INTERVAL_15MIN, missing=INTERVAL_15MIN, allow_none=True)
+    rollup = fields.Str(default=INTERVAL_SUM, missing=INTERVAL_SUM, allow_none=True)
     zerofill = fields.Bool(default=True, missing=True, allow_none=True)
     f = fields.Str(default="JSON", missing="JSON", allow_none=True)
 
@@ -90,17 +98,22 @@ class RequestSchema(Schema):
     def preprocess_args(self, data, **kwargs):
         """pre-process the request args
         """
-        # print(data)
+        
         # parse interval arg, setting default if needed
         if 'rollup' in data.keys():
-            data['rollup'] = INTERVAL_15MIN if data['rollup'].lower() not in INTERVAL_TRUTHS else data['rollup'].lower()
+            data['rollup'] = INTERVAL_SUM if data['rollup'].lower() not in INTERVAL_TRUTHS else data['rollup'].lower()
+        else:
+            data['rollup'] = INTERVAL_SUM
         
         # parse zerofill arg into a boolean
         if 'zerofill' in data.keys():
             data['zerofill'] = data['zerofill'].lower() in ZEROFILL_TRUTHS
-
+        
+        # parse the output format, fallback to a default if none provided
         if 'f' in data.keys():
             data['f'] = data['f'].lower()
+        else:
+            data['f'] = 'time'
 
         # parse all the start and end date/times args into datetime objects
         # using dateutil.parser.parse behind the scenes here gives the end user some flexibility in how they submit date/times
@@ -131,6 +144,19 @@ class RequestSchema(Schema):
         unknown = EXCLUDE
         ordered = True
 
+
+def parse_and_validate_args(raw_args):
+    """validate request args and parse using Marshmallow pre-processor schema.
+    
+    :param raw_args: kwargs parsed from request
+    :type raw_args: dict
+    :return: validated kwargs
+    :rtype: dict
+    """
+    request_schema = RequestSchema()
+    return request_schema.load(raw_args)
+
+
 class ResponseSchema:
     """Implements the format for response delivered by the AWS API Gateway; handles
     formatting the body of the response (inspired by https://github.com/omniti-labs/jsend)
@@ -159,7 +185,7 @@ class ResponseSchema:
         self.args = datetime_encoder(request_args) if request_args else None
         self.data = response_data if response_data else []
         self.status_message = JSEND_CODES[status_code] if status_code else 'success'
-        self.message = message if message else None #http_codes_lookup[status_code]
+        self.message = message if message else [] #http_codes_lookup[status_code]
 
         self.meta = meta if meta else {}
         self.rowcount = len(response_data) if response_data else None
@@ -174,7 +200,7 @@ class ResponseSchema:
         )
         # add a message if there is one
         if self.message:
-            self._body.update({'message': self.message})
+            self._body.update({'messages': self.message})
 
         # TOP-LEVEL
         self.status_code = status_code if status_code else 200
