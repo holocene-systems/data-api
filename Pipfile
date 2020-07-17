@@ -29,6 +29,8 @@ pynamodb = "*"
 marshmallow = "*"
 django-leaflet = "*"
 numpy = "*"
+gunicorn = "*"
+pytz = "*"
 
 [requires]
 python_version = "3.8"
