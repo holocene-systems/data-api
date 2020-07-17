@@ -1,4 +1,6 @@
 # from django.contrib.auth.models import User, Group
+
+from datetime import datetime, timedelta
 from django.utils.safestring import mark_safe
 from django.utils.timezone import localtime
 from django.db.models import Q
@@ -16,7 +18,8 @@ from .serializers import (
     RtrrObservationSerializer, 
     ReportEventSerializer,
     RequestSchema,
-    ResponseSchema
+    ResponseSchema,
+    parse_and_validate_args
 )
 from .models import (
     AWSAPIGWMock, 
@@ -35,10 +38,10 @@ from .api_civicmapper.config import (
     INTERVAL_HOURLY, 
     INTERVAL_MONTHLY,
     INTERVAL_SUM,
-    TZ
+    TZ,
+    F_CSV
 )
 from .api_civicmapper.core import (
-    parse_and_validate_args, 
     parse_sensor_ids, 
     parse_sensor_ids, 
     parse_datetime_args, 
@@ -57,6 +60,7 @@ def _handler(postgres_table_model, request):
 
     Modeled off of the handler.py script from the original serverless version of this codebase.
     """
+    messages = []
 
     # **parse** the arguments from the query string or body, depending on request method
     if request.method == 'GET':
@@ -64,15 +68,36 @@ def _handler(postgres_table_model, request):
     else:
         raw_args = request.data
 
-    # handle an empty query string; we fall back to some defaults if nothing is provided
+    # handle missing arguments here:
+    # Rollup = Sum
+    # Format = Time-oriented
+    # start and end datetimes: will attemp to look for the last rainfall event, 
+    # otherwise will fallback to looking for 4 hours of the latest available data.
+
     if not raw_args:
+        raw_args = {}
+    
+    if all(['start_dt' not in raw_args.keys(),'end_dt' not in raw_args.keys()]):
         latest_report = ReportEvent.objects.first()
-        # We explicitly convert to localtime here because Django assumes datetimes
-        # in the DB are stored as UTC (even with timezone offset stored there)
-        raw_args['start_dt'] = localtime(latest_report.start_dt, TZ).isoformat()
-        raw_args['end_dt'] = localtime(latest_report.end_dt, TZ).isoformat()
-        raw_args['rollup'] = INTERVAL_SUM
-        raw_args['f'] = 'time' #sensor
+        # if there are events available, fall back to one of those
+        if latest_report:
+            # We explicitly convert to localtime here because Django assumes datetimes
+            # in the DB are stored as UTC (even with timezone offset stored there)
+            raw_args['start_dt'] = localtime(latest_report.start_dt, TZ).isoformat()
+            raw_args['end_dt'] = localtime(latest_report.end_dt, TZ).isoformat()
+            messages.append("Using the latest available rainfall event data by a default.")
+        # otherwise get a a sna of latest available data
+        else:
+            last_data_point = postgres_table_model.objects.latest('timestamp')
+            # print(last_data_point)
+            latest = raw_args['end_dt'] = localtime(last_data_point.timestamp, TZ)
+            before = latest - timedelta(hours=4)
+            raw_args['start_dt'] = before.isoformat()
+            raw_args['end_dt'] = latest.isoformat()
+            messages.append("Using the latest available rainfall data by a default.")
+
+        # raw_args['rollup'] = INTERVAL_SUM
+        # raw_args['f'] = 'time' #sensor
 
         # response = ResponseSchema(
         #     status_code=400,
@@ -80,26 +105,31 @@ def _handler(postgres_table_model, request):
         # )
         # return Response(data=response.as_dict(), status=status.HTTP_400_BAD_REQUEST)
 
+    # print(raw_args)
+
     # -------------------------------------------------------------------
     # validate the request arguments
 
     # **validate** the arguments using a marshmallow model
     # this will convert datetimes to the proper format, check formatting, etc.
     try:
-        print("parse_and_validate_args")
+        # print("parse_and_validate_args")
         args = parse_and_validate_args(raw_args)
+        # print(args)
     # return errors from validation
     except ValidationError as e:
+        messages.append("{1}. See documentation for example requests.".format(e.messages))
         # print(e.messages)
         response = ResponseSchema(
             status_code=400,
-            message="{1}. See documentation for example requests.".format(e.messages)
+            message=messages
         )
         return Response(data=response.as_dict(), status=status.HTTP_400_BAD_REQUEST)
     except KeyError as e:
+        messages.append("Invalid request arguments ({0}). See documentation for example requests".format(e))
         response = ResponseSchema(
             status_code=400,
-            message="Invalid request arguments ({0}). See documentation for example requests".format(e)
+            message=messages
         )
         return Response(data=response.as_dict(), status=status.HTTP_400_BAD_REQUEST)
 
@@ -110,7 +140,7 @@ def _handler(postgres_table_model, request):
     # make up the primary keys in the database
     
     # parse the datetime parameters into a complete list of all possible date times
-    print("parse_datetime_args")
+    # print("parse_datetime_args")
     dts = parse_datetime_args(args['start_dt'], args['end_dt'], args['rollup'])
 
     # TODO: check for  datetime + rollup parameters here
@@ -126,10 +156,11 @@ def _handler(postgres_table_model, request):
         # sum: < 1 year
         args['rollup'] == INTERVAL_SUM and len(dts) > (4 * 24 * 366)
     ]):
+        messages.append("The submitted request would generate a larger response than we can manage for you right now. Use one of the following combinations of rollup and datetime ranges: 15-minute: < 1 week; hourly < 1 month; daily: < 3 months; monthly: < 1 year; sum: < 1 year. Please either reduce the date/time range queried or increase the time interval for roll-up parameter.")
         response = ResponseSchema(
             status_code=400,
             response_data=dict((k, args[k]) for k in ['rollup', 'start_dt', 'end_dt'] if k in args),
-            message="The submitted request would generate a larger response than we can manage for you right now. Use one of the following combinations of rollup and datetime ranges: 15-minute: < 1 week; hourly < 1 month; daily: < 3 months; monthly: < 1 year; sum: < 1 year. Please either reduce the date/time range queried or increase the time interval for roll-up parameter."
+            message=messages
         )
         return Response(data=response.as_dict(), status=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE)
 
@@ -141,12 +172,13 @@ def _handler(postgres_table_model, request):
 
     # use parsed args and datetime list to query the database
     try:
-        print("query_pgdb")
+        # print("query_pgdb")
         results = query_pgdb(postgres_table_model, sensor_ids, dts)
     except Exception as e:
+        messages.append("Could not retrieve records from the database. Error(s): {0}".format(str(e)))
         response = ResponseSchema(
             status_code=500,
-            message="Could not retrieve records from the database. Error(s): {0}".format(str(e))
+            message=messages
         )
         return Response(data=response.as_dict(), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -156,30 +188,38 @@ def _handler(postgres_table_model, request):
     if len(results) > 0:
         
         # perform selects and/or aggregations based on zerofill and interval args
-        print("aggregate_results_by_interval")
+        # print("aggregate_results_by_interval")
         aggregated_results = aggregate_results_by_interval(results, args['rollup'])
         #print("aggregated results\n", etl.fromdicts(aggregated_results))
-        print("apply_zerofill")
+        # print("apply_zerofill")
         zerofilled_results = apply_zerofill(aggregated_results, args['zerofill'], dts)
         # transform the data to the desired format, if any
         # (by default it just returns the DynamoDB response: a list of dicts)
-        print("format_results")
+        # print("format_results")
         response_data = format_results(zerofilled_results, args['f']) #, ref_geojson)
 
         # return the result
-        response = ResponseSchema(
-            status_code=200,
-            request_args=args,
-            response_data=response_data
-        )
-        return Response(response.as_dict(), status=status.HTTP_200_OK)
+
+        # if the request was for a csv in the legacy teragon format, then we only return that
+        if args['f'] in F_CSV:
+            print('returning legacy CSV format')
+            return Response(response_data, status=status.HTTP_200_OK, content_type="text/csv")
+        else:
+            response = ResponseSchema(
+                status_code=200,
+                request_args=args,
+                response_data=response_data,
+                message=messages
+            )
+            return Response(response.as_dict(), status=status.HTTP_200_OK)
 
     else:
         # return the result
+        messages.append("No records returned.")
         response = ResponseSchema(
             status_code=200,
             request_args=args,
-            message="No records returned."
+            message=messages
         )
         return Response(response.as_dict(), status=status.HTTP_204_NO_CONTENT)
 

@@ -8,5 +8,5 @@ def test_rainfall_garr_response(client):
 
 @pytest.mark.django_db
 def test_tracts_api_response(client):
-    response = client.get('/rainfall/v2/tracts/')
+    response = client.get('/rainfall/v2/gauge/')
     assert response.status_code == 200
