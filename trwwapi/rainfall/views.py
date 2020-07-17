@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from django.utils.safestring import mark_safe
 from django.utils.timezone import localtime
 from django.db.models import Q
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -88,22 +89,30 @@ def _handler(postgres_table_model, request):
             messages.append("Using the latest available rainfall event data by a default.")
         # otherwise get a a sna of latest available data
         else:
-            last_data_point = postgres_table_model.objects.latest('timestamp')
-            # print(last_data_point)
-            latest = raw_args['end_dt'] = localtime(last_data_point.timestamp, TZ)
-            before = latest - timedelta(hours=4)
-            raw_args['start_dt'] = before.isoformat()
-            raw_args['end_dt'] = latest.isoformat()
-            messages.append("Using the latest available rainfall data by a default.")
+            try:
+                last_data_point = postgres_table_model.objects.latest('timestamp')                
+                # print(last_data_point)
+                latest = raw_args['end_dt'] = localtime(last_data_point.timestamp, TZ)
+                before = latest - timedelta(hours=4)
+                raw_args['start_dt'] = before.isoformat()
+                raw_args['end_dt'] = latest.isoformat()
+                messages.append("Using the latest available rainfall data by a default.")
+            except ObjectDoesNotExist:
+                messages.append("Unable to retrieve data: no arguments provided; unable to default to latest data.")
+                response = ResponseSchema(
+                    status_code=400,
+                    message=messages
+                )
+                return Response(data=response.as_dict(), status=status.HTTP_400_BAD_REQUEST)                
 
         # raw_args['rollup'] = INTERVAL_SUM
         # raw_args['f'] = 'time' #sensor
 
-        # response = ResponseSchema(
-        #     status_code=400,
-        #     message="No arguments provided in the request. See documentation for example requests.",
-        # )
-        # return Response(data=response.as_dict(), status=status.HTTP_400_BAD_REQUEST)
+                # response = ResponseSchema(
+                #     status_code=400,
+                #     message="No arguments provided in the request. See documentation for example requests.",
+                # )
+                # return Response(data=response.as_dict(), status=status.HTTP_400_BAD_REQUEST)
 
     # print(raw_args)
 
