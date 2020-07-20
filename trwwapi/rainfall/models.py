@@ -29,7 +29,7 @@ class GaugeObservation(RainfallObservationMeta):
 
 
 class GarrObservation(RainfallObservationMeta):
-    """Gauge-Adjusted Radar Rainfall (historic data)
+    """Gauge-Adjusted Radar Rainfall (historic)
     """    
     pass
 
@@ -40,7 +40,7 @@ class RtrrObservation(RainfallObservationMeta):
     pass
 
 
-class RtggObservation(RainfallObservationMeta):
+class RtrgObservation(RainfallObservationMeta):
     """Raw Rain Gauge data (real-time)
     """    
     pass

@@ -31,7 +31,7 @@ from .api_civicmapper.config import (
 )
 from .api_civicmapper.utils import datetime_encoder, dt_parser
 
-from .models import GarrObservation, GaugeObservation, RtrrObservation, ReportEvent, Pixel, Gauge
+from .models import GarrObservation, GaugeObservation, RtrrObservation, RtrgObservation, ReportEvent, Pixel, Gauge
 
 
 class GarrObservationSerializer(serializers.ModelSerializer):
@@ -49,6 +49,12 @@ class GaugeObservationSerializer(serializers.ModelSerializer):
 class RtrrObservationSerializer(serializers.ModelSerializer):
     class Meta:
         model = RtrrObservation
+        fields = '__all__'
+
+
+class RtrgObservationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RtrgObservation
         fields = '__all__'
 
 

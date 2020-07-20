@@ -31,6 +31,7 @@ django-leaflet = "*"
 numpy = "*"
 gunicorn = "*"
 pytz = "*"
+pyyaml = "*"
 
 [requires]
 python_version = "3.8"

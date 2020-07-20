@@ -17,6 +17,7 @@ from .serializers import (
     GarrObservationSerializer, 
     GaugeObservationSerializer, 
     RtrrObservationSerializer, 
+    RtrgObservationSerializer,
     ReportEventSerializer,
     RequestSchema,
     ResponseSchema,
@@ -27,6 +28,7 @@ from .models import (
     GarrObservation, 
     GaugeObservation, 
     RtrrObservation, 
+    RtrgObservation,
     ReportEvent, 
     Pixel, 
     Gauge, 
@@ -263,10 +265,8 @@ class RainfallGarrApiView(APIView):
 
     def get(self, request, *args, **kw):
         return _handler(GarrObservation, request)
-
     # def post(self, request, *args, **kw):
     #     return _handler(GarrObservation, request)
-
 
 class RainfallGaugeApiView(APIView):
 
@@ -278,6 +278,12 @@ class RainfallRtrrApiView(APIView):
 
     def get(self, request, *args, **kw):
         return _handler(RtrrObservation, request)
+
+class RainfallRtrgApiView(APIView):
+
+    def get(self, request, *args, **kw):
+        return _handler(RtrgObservation, request)
+
 
 
 
@@ -300,14 +306,6 @@ class GarrObservationViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     lookup_field = 'timestamp'
 
-    # t = GarrObservation.objects\
-    #     .filter(timestamp__gt="2020-03-30")\
-    #     .extra(
-    #         select={'sensors': """SELECT jsonb_object_agg(key, value) FROM jsonb_each(data) WHERE key IN (%s)"""}
-    #         select_params=(someparam)
-    #     )
-    # t = GarrObservation.objects.filter(timestamp__gt="2020-03-30").extra(select={'val': """SELECT jsonb_object_agg(key, value) FROM jsonb_each(data) WHERE key IN (%s)"""}, select_params=", ".join(['123134', '159138']))
-
 
 class GaugeObservationViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = GaugeObservation.objects.all()
@@ -319,5 +317,11 @@ class GaugeObservationViewSet(viewsets.ReadOnlyModelViewSet):
 class RtrrObservationViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = RtrrObservation.objects.all()
     serializer_class  = RtrrObservationSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    lookup_field='timestamp'
+
+class RtrgbservationViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = RtrgObservation.objects.all()
+    serializer_class  = RtrgObservationSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     lookup_field='timestamp'
