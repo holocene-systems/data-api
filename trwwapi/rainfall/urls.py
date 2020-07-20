@@ -5,7 +5,7 @@ from .views import ApiDefaultRouter
 # high-level vews
 from .views import RainfallGarrApiView, RainfallGaugeApiView, RainfallRtrrApiView
 # low-level views
-from .views import GarrObservationViewSet, GaugeObservationViewSet, RtrrObservationViewSet
+from .views import GarrObservationViewSet, GaugeObservationViewSet, RtrrObservationViewSet, ReportEventsViewSet
 
 # -----------------------------------------------
 # router for low-level API routes
@@ -14,6 +14,7 @@ router = ApiDefaultRouter()
 router.register(r'garr-table', GarrObservationViewSet)
 router.register(r'gauge-table', GaugeObservationViewSet)
 router.register(r'rtrr-table', RtrrObservationViewSet)
+router.register(r'events', ReportEventsViewSet)
 
 # -----------------------------------------------
 # API URLs for the Views
