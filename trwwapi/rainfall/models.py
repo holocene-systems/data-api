@@ -23,14 +23,26 @@ class RainfallObservationMeta(PandasModelMixin):
     
 
 class GaugeObservation(RainfallObservationMeta):
+    """Calibrated Rain Gauge data (historic)
+    """
     pass
 
 
 class GarrObservation(RainfallObservationMeta):
+    """Gauge-Adjusted Radar Rainfall (historic data)
+    """    
     pass
 
 
 class RtrrObservation(RainfallObservationMeta):
+    """Raw Radar data (real-time)
+    """        
+    pass
+
+
+class RtggObservation(RainfallObservationMeta):
+    """Raw Rain Gauge data (real-time)
+    """    
     pass
 
 
