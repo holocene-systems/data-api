@@ -90,7 +90,7 @@ def _handler(postgres_table_model, request):
         # otherwise get a a sna of latest available data
         else:
             try:
-                last_data_point = postgres_table_model.objects.latest('timestamp')                
+                last_data_point = postgres_table_model.objects.latest('timestamp')
                 # print(last_data_point)
                 latest = raw_args['end_dt'] = localtime(last_data_point.timestamp, TZ)
                 before = latest - timedelta(hours=4)

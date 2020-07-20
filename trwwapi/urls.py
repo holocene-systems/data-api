@@ -17,11 +17,11 @@ from django.contrib import admin
 from django.urls import path, include
 
 from rest_framework import routers
-# from .rainfall.urls import router as rainfall_api_router
+from .views import index
 
 
 urlpatterns = [
+    path('', index),
     path('admin/', admin.site.urls),
-    # path('rainfall/', include(rainfall_api_router.urls))
     path('rainfall/', include('trwwapi.rainfall.urls'))
 ]
