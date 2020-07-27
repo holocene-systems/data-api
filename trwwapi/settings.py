@@ -52,7 +52,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # 3rd part apps
+    # 3rd party apps
+    'corsheaders',
     'rest_framework',
     'rest_framework_gis',
     'leaflet',
@@ -62,6 +63,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -177,6 +179,15 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20,
     'DEFAULT_METADATA_CLASS': 'rest_framework.metadata.SimpleMetadata'
 }
+
+# ------------------------------------------------------------------------------
+# CORS
+
+CORS_ORIGIN_WHITELIST = [
+    "https://3rww.github.io/rainfall",
+    "http://localhost:3000"
+]
+
 
 # ------------------------------------------------------------------------------
 # LOGGING
