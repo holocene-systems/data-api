@@ -179,7 +179,7 @@ def _handler(postgres_table_model, request):
     # parse sensor ID string to a list. if not provided, the subsequent query will return all sensors.
     sensor_ids = []
     if args['sensor_ids']:
-        sensor_ids = [str(i) for i in id_string.split(DELIMITER)]
+        sensor_ids = [str(i) for i in args['sensor_ids'].split(DELIMITER)]
 
     # use parsed args and datetime list to query the database
     try:
