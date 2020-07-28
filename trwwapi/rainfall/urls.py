@@ -24,7 +24,7 @@ urlpatterns = [
     # high-level routes - multiple routes-per-view represent multiple naming convetions
     path('v2/pixel/historic/', RainfallGarrApiView.as_view()),
     path('v2/pixel/calibrated/', RainfallGarrApiView.as_view()),    
-    path('v2/radar/historic/', RainfallGarrApiView.as_view()
+    path('v2/radar/historic/', RainfallGarrApiView.as_view()),
     path('v2/radar/calibrated/', RainfallGarrApiView.as_view()),
 
     path('v2/pixel/realtime/', RainfallRtrrApiView.as_view()),
