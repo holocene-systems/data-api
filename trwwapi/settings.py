@@ -184,7 +184,7 @@ REST_FRAMEWORK = {
 # CORS
 
 CORS_ORIGIN_WHITELIST = [
-    "https://3rww.github.io/rainfall",
+    "https://3rww.github.io",
     "http://localhost:3000"
 ]
 
