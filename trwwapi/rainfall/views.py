@@ -153,27 +153,28 @@ def _handler(postgres_table_model, request):
     # parse the datetime parameters into a complete list of all possible date times
     # print("parse_datetime_args")
     dts = parse_datetime_args(args['start_dt'], args['end_dt'], args['rollup'])
+    # print(dts)
 
     # TODO: check for  datetime + rollup parameters here
-    if any([
-        # 15-minute: < 1 week 
-        args['rollup'] == INTERVAL_15MIN and len(dts) > (24 * 4 * 7),
-        # hourly < 1 month
-        args['rollup'] == INTERVAL_HOURLY and len(dts) > (4 * 24 * 31),
-        # daily: < 3 months
-        args['rollup'] == INTERVAL_DAILY and len(dts) > (4 * 24 * 90),
-        # monthly: < 1 year
-        args['rollup'] == INTERVAL_MONTHLY and len(dts) > (4 * 24 * 366),
-        # sum: < 1 year
-        args['rollup'] == INTERVAL_SUM and len(dts) > (4 * 24 * 366)
-    ]):
-        messages.append("The submitted request would generate a larger response than we can manage for you right now. Use one of the following combinations of rollup and datetime ranges: 15-minute: < 1 week; hourly < 1 month; daily: < 3 months; monthly: < 1 year; sum: < 1 year. Please either reduce the date/time range queried or increase the time interval for roll-up parameter.")
-        response = ResponseSchema(
-            status_code=400,
-            response_data=dict((k, args[k]) for k in ['rollup', 'start_dt', 'end_dt'] if k in args),
-            message=messages
-        )
-        return Response(data=response.as_dict(), status=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE)
+    # if any([
+    #     # 15-minute: < 1 week 
+    #     args['rollup'] == INTERVAL_15MIN and len(dts) > (24 * 4 * 7),
+    #     # hourly < 1 month
+    #     args['rollup'] == INTERVAL_HOURLY and len(dts) > (4 * 24 * 31),
+    #     # daily: < 3 months
+    #     args['rollup'] == INTERVAL_DAILY and len(dts) > (4 * 24 * 90),
+    #     # monthly: < 1 year
+    #     args['rollup'] == INTERVAL_MONTHLY and len(dts) > (4 * 24 * 366),
+    #     # sum: < 1 year
+    #     args['rollup'] == INTERVAL_SUM and len(dts) > (4 * 24 * 366)
+    # ]):
+    #     messages.append("The submitted request would generate a larger response than we can manage for you right now. Use one of the following combinations of rollup and datetime ranges: 15-minute: < 1 week; hourly < 1 month; daily: < 3 months; monthly: < 1 year; sum: < 1 year. Please either reduce the date/time range queried or increase the time interval for roll-up parameter.")
+    #     response = ResponseSchema(
+    #         status_code=400,
+    #         response_data=dict((k, args[k]) for k in ['rollup', 'start_dt', 'end_dt'] if k in args),
+    #         message=messages
+    #     )
+    #     return Response(data=response.as_dict(), status=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE)
 
     
     # parse sensor ID string to a list. if not provided, the subsequent query will return all sensors.

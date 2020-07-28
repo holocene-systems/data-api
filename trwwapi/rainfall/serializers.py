@@ -123,7 +123,8 @@ class RequestSchema(Schema):
 
         # parse all the start and end date/times args into datetime objects
         # using dateutil.parser.parse behind the scenes here gives the end user some flexibility in how they submit date/times
-        # we *assume* times submitted are for America/New-York Eastern timezone, even if not explicity provided that way
+        # we assume naive timestamps submitted are for America/New-York Eastern timezone, even if not explicity provided that way
+        # if timezone info is attached (ISO or otherwise, we should be able to get that)
         data['start_dt'] = dt_parser(data['start_dt'], tz_string=TZ_STRING, tzi=TZI, tzinfos=TZINFOS)
         if 'end_dt' in data.keys():
             data['end_dt'] = dt_parser(data['end_dt'], tz_string=TZ_STRING, tzi=TZI, tzinfos=TZINFOS)

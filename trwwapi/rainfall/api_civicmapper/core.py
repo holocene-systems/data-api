@@ -30,6 +30,7 @@ from .config import (
     INTERVAL_HOURLY,
     INTERVAL_DAILY,
     INTERVAL_SUM,
+    TZ,
     TZINFOS,
     F_CSV,
     F_GEOJSON,
@@ -279,20 +280,23 @@ def query_pgdb(postgres_table_model, sensor_ids, all_datetimes):
     newrows = []
     for row in rows:
         for sensor_id, observation in row['data'].items():
-            newrows.append(dict(ts=row['timestamp'], id=sensor_id, val=observation[0], src=observation[1]))
-
+            newrows.append(dict(ts=row['timestamp'].isoformat(), id=sensor_id, val=observation[0], src=observation[1]))
+    # print(newrows)
     return newrows
 
 def _rollup_date(dts, interval=None):
     """format date/time string based on interval spec'd for summation
     """
+    # print(dts, type(dts))
     s = "%Y-%m" # initial datetime string format - always years and months
     if interval == INTERVAL_DAILY:
         s += "-%d" # add days
     elif interval == INTERVAL_HOURLY:
         s += "-%dT%H" # add days and hours
     # by default returns year and month
-    return parse(dts).strftime(s)
+    dt = parse(dts).strftime(s)
+    # print(dt)
+    return dt
 
 def _sumround(i):
     """sum all values in iterable `i`, and round the result to 
@@ -308,7 +312,7 @@ def _listset(i):
 
 def _minmax(i):
     vals = list(set(i))
-    return "{0}/{1}".format(min(vals), max(vals))
+    return "{0}/{1}".format(min(TZ.localize(parse(vals))), max(TZ.localize(parse(vals))))
 
 def aggregate_results_by_interval(query_results, rollup):
     """aggregate the values in the query results based on the rollup args
@@ -326,7 +330,7 @@ def aggregate_results_by_interval(query_results, rollup):
     doing an hourly rollup), then the values will stay there, but the source field will indicate
     both N/D and whatever the source was for the workable sensor values.
     """
-
+    # print("rollup", rollup)
     if rollup in [INTERVAL_DAILY, INTERVAL_HOURLY]:
 
         petl_aggs = OrderedDict(
@@ -338,11 +342,13 @@ def aggregate_results_by_interval(query_results, rollup):
             .fromdicts(query_results)\
             .convert(
                 'ts', 
-                lambda v: _rollup_date(v, rollup) # convert datetimes to their rolled-up value
+                lambda v: _rollup_date(v, rollup), # convert datetimes to their rolled-up value
+                failonerror=True
             )\
             .convert(
                 'val', 
-                lambda v: 0 if v is None else v # convert rainfall values to 0 if no-data
+                lambda v: 0 if v is None else v, # convert rainfall values to 0 if no-data
+                failonerror=True
             )\
             .aggregate(
                 ('ts', 'id'), 
@@ -350,14 +356,18 @@ def aggregate_results_by_interval(query_results, rollup):
             )\
             .convert(
                 'ts', 
-                lambda v: parse(v, tzinfos=TZINFOS).isoformat() # convert that datetime to iso format w/ timezone
+                lambda v: TZ.localize(parse(v)).isoformat(), # convert that datetime to iso format w/ timezone
+                failonerror=True
             )\
             .convert(
                 'val', 
                 lambda v, r: None if ('N/D' in r.src and v == 0) else v, # replace 0 values with no data if aggregated source says its N/D
-                pass_row=True
+                pass_row=True,
+                failonerror=True
             )\
             .sort('id')
+
+        # print(t)
 
         return list(etl.dicts(t))
 
