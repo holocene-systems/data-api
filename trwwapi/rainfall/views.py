@@ -233,7 +233,7 @@ def _handler(postgres_table_model, request):
             request_args=args,
             message=messages
         )
-        return Response(response.as_dict(), status=status.HTTP_204_NO_CONTENT)
+        return Response(response.as_dict(), status=status.HTTP_200_OK)
 
     
 

@@ -15,6 +15,7 @@ import geojson
 
 from django.db.models import Q
 
+
 from .models import RequestSchema, RainfallObservation, TableGARR15, TableGauge15, TableRTRR15
 from .utils import datetime_range
 from .config import (
@@ -262,6 +263,9 @@ def query_ddb_exact(pynamodb_table, sensor_ids, all_datetimes):
 
 @retry(stop=(stop_after_attempt(5) | stop_after_delay(60)), wait=wait_random_exponential(multiplier=2, max=30), reraise=True)
 def query_pgdb(postgres_table_model, sensor_ids, all_datetimes):
+
+    tablename = postgres_table_model.objects.model._meta.db_table
+    print("querying {0}".format(tablename))
 
     queryset = postgres_table_model.objects.filter(
         Q(timestamp__gte=all_datetimes[0]),
