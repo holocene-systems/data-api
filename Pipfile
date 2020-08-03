@@ -33,6 +33,7 @@ gunicorn = "*"
 pytz = "*"
 pyyaml = "*"
 django-cors-headers = "*"
+django-rq = "*"
 
 [requires]
 python_version = "3.8"
