@@ -38,3 +38,4 @@ sqlparse==0.3.1
 tenacity==6.2.0
 urllib3==1.25.10 ; python_version != '3.4'
 whitenoise==5.1.0
+django-debug-toolbar
