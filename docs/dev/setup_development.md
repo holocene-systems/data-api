@@ -1,6 +1,6 @@
 # Local Setup
 
-These instructions assume use of `pipenv` for Python virtual environment and depenedency mangement, and `pnpm` for NodeJS dependency mangement.
+These instructions assume use of `pipenv` for Python virtual environment and depenedency mangement, `pnpm` for NodeJS dependency mangement, and Docker for local development
 
 ## Create the Python virtual environment + install dependencies
 

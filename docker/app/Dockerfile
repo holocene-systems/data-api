@@ -1,4 +1,4 @@
-FROM python:3
+FROM python:3.8
 
 RUN apt-get update
 RUN apt-get -y autoremove && apt-get install -y \
@@ -8,12 +8,13 @@ RUN apt-get -y autoremove && apt-get install -y \
 	gdal-bin \
 	git
 
-ENV PYTHONBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
 RUN mkdir /code
-COPY requirements.txt /code/
 WORKDIR /code/
-RUN pip install -r requirements.txt
+COPY requirements.txt /code/requirements.txt
+RUN pip install -r /code/requirements.txt
 
 COPY . /code/
 
