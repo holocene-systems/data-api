@@ -316,7 +316,11 @@ def _listset(i):
 
 def _minmax(i):
     vals = list(set(i))
-    return "{0}/{1}".format(min(TZ.localize(parse(vals))), max(TZ.localize(parse(vals))))
+    return "{0}/{1}".format(min(vals), max(vals))
+    return "{0}/{1}".format(
+        TZ.localize(parse(min(vals))), 
+        TZ.localize(parse(max(vals)))
+    )
 
 def aggregate_results_by_interval(query_results, rollup):
     """aggregate the values in the query results based on the rollup args

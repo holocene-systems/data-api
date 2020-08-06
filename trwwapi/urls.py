@@ -14,6 +14,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.conf import settings
 from django.urls import path, include
 
 from rest_framework import routers
@@ -23,5 +24,13 @@ from .views import index
 urlpatterns = [
     path('', index),
     path('admin/', admin.site.urls),
-    path('rainfall/', include('trwwapi.rainfall.urls'))
+    path('rainfall/', include('trwwapi.rainfall.urls')),
+    # job queue
+    path('jobs/', include('django_rq.urls'))
 ]
+
+if settings.DEBUG:
+    import debug_toolbar
+    urlpatterns = [
+        path('__debug__/', include(debug_toolbar.urls)),
+    ] + urlpatterns

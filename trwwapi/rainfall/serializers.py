@@ -1,5 +1,5 @@
 import json
-
+from django.conf import settings
 from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer 
 
@@ -169,10 +169,17 @@ class ResponseSchema:
     formatting the body of the response (inspired by https://github.com/omniti-labs/jsend)
     """
 
-    def __init__(self, request_args=None, response_data=None, status_code=None, message=None, meta=None, response_data_format=None, headers=None):
+    def __init__(self, 
+        request_args=None, 
+        response_data=None, 
+        status_code=None, 
+        status_message=None,
+        messages=None, 
+        meta=None,
+    ):
         """[summary]
         
-        :param request_args: request args as parsed by the API, defaults to None
+        :param request_args: request args **as parsed by the API**, defaults to None
         :type request_args: dict, optional
         :param response_data: acts as the wrapper for any data returned by the API call. If the call returns no data, defaults to None
         :type response_data: list or dict, optional
@@ -180,21 +187,17 @@ class ResponseSchema:
         :type status_code: int, optional
         :param message: detailed message, defaults to None
         :type message: str, optional
-        :param meta: contains anything passed in by the user; includes an auto-calc'd row count if response_data is parsed; defaults to None
+        :param meta: contains job metadata and post-processing stats, including an auto-calc'd row count if response_data is parsed; defaults to None
         :type meta: dict, optional
-        :param response_data_format: valid http response header Content-Types, e.g., 'application/json', 'text/csv'; defaults to 'application/json'
-        :type response_data_format: str, optional
-        :param headers: any user-provided response header content and will always includes Content-Type: based on the response_data_format param by default; defaults to None
-        :type headers: dict, optional
         """
         
         # BODY
         self.args = datetime_encoder(request_args) if request_args else None
-        self.data = response_data if response_data else []
-        self.status_message = JSEND_CODES[status_code] if status_code else 'success'
-        self.message = message if message else [] #http_codes_lookup[status_code]
-
         self.meta = meta if meta else {}
+        self.data = response_data if response_data else None
+        self.status_message = status_message if status_message else 'success'
+        self.messages = messages if messages else [] #http_codes_lookup[status_code]
+        self.status_code = status_code if status_code else 200
         self.rowcount = len(response_data) if response_data else None
         if self.rowcount:
             self.meta.update({"records": self.rowcount})
@@ -203,39 +206,17 @@ class ResponseSchema:
             args=self.args,
             meta=self.meta,
             data=self.data,
-            status=self.status_message
+            status=self.status_message,
+            status_code=self.status_code,
+            messages=self.messages
         )
-        # add a message if there is one
-        if self.message:
-            self._body.update({'messages': self.message})
+        
 
-        # TOP-LEVEL
-        self.status_code = status_code if status_code else 200
-        self.headers = headers if headers else {}
-        self.content_type = response_data_format if response_data_format else 'application/json'
-        if self.content_type:
-            self.headers.update({"Content-Type": self.content_type})
-
-        # Have to add this *manually* to make CORS work! APIGW setting doesn't do it!
-        self.headers.update({"Access-Control-Allow-Origin":"*"})
-
-        # Exceptions: 
-        # 1. if the requested output format was GeoJSON, we don't include the response metadata.
-        if self.args:
-            if self.args['f'] in F_GEOJSON:
-                self._body = self.data
-        # ...
-
-        self._top_level = dict(
-            statusCode = self.status_code,
-            headers=self.headers,
-            body=self._body
-        )
     
     def as_dict(self):
         """assemble the response as a dictionary
         """
-        return self._top_level['body']
+        return self._body
 
     def __str__(self):
         return json.dumps(self.as_dict())

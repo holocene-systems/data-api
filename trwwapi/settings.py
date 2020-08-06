@@ -42,6 +42,16 @@ ALLOWED_HOSTS = [
     'trwwapi.herokuapp.com'
 ]
 
+INTERNAL_IPS = [
+    'localhost',
+    '127.0.0.1'
+]
+
+CORS_ORIGIN_WHITELIST = [
+    "https://3rww.github.io",
+    "http://localhost:3000"
+]
+
 
 # Application definition
 
@@ -53,10 +63,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # 3rd party apps
+    'django_rq',
     'corsheaders',
     'rest_framework',
     'rest_framework_gis',
     'leaflet',
+    'debug_toolbar',
     # our apps
     'trwwapi.rainfall',
 ]
@@ -65,6 +77,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -180,14 +193,20 @@ REST_FRAMEWORK = {
     'DEFAULT_METADATA_CLASS': 'rest_framework.metadata.SimpleMetadata'
 }
 
+
 # ------------------------------------------------------------------------------
-# CORS
+# JOB QUEUES
 
-CORS_ORIGIN_WHITELIST = [
-    "https://3rww.github.io",
-    "http://localhost:3000"
-]
+RQ_QUEUES = {
+    'default': {
+        # 'URL': os.getenv('REDISTOGO_URL', 'redis://localhost:6379/0'),
+        'URL': os.getenv('REDISTOGO_URL', 'redis://redis:6379/0'),
+        'DEFAULT_TIMEOUT': 900,
+    }
+}
 
+RQ_API_TOKEN=os.getenv('RQ_API_TOKEN', 'test-rq-token')
+RQ_SHOW_ADMIN_LINK = True
 
 # ------------------------------------------------------------------------------
 # LOGGING
@@ -229,4 +248,12 @@ LOGGING = {
             'propagate': False,
         },
     }
+}
+
+
+# ------------------------------------------------------------------------------
+# Django Debug Toolbar (configure for use with Docker)
+
+DEBUG_TOOLBAR_CONFIG = {
+    'SHOW_TOOLBAR_CALLBACK': lambda request: DEBUG,
 }
