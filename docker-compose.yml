@@ -19,13 +19,13 @@ services:
         build: 
             context: .
             dockerfile: docker/app/Dockerfile
-        command: python3 manage.py runserver 0.0.0.0:8000          
+        command: python3 manage.py runserver 0.0.0.0:7000
         depends_on:
             # - db
             - redis
         env_file: .env
         ports:
-            - "8000:8000"
+            - "7000:7000"
         volumes:
           - .:/code
     worker:
