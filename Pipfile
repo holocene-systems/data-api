@@ -12,6 +12,7 @@ django-debug-toolbar = "*"
 [packages]
 django = "*"
 django-dotenv = "*"
+django-debug-toolbar = "*"
 djangorestframework = "*"
 djangorestframework-gis = "*"
 dj-database-url = "*"
