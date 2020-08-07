@@ -31,26 +31,21 @@ main_app_name = 'trwwapi'
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = ')d33ach()z0ja$a6-_@8k#wgrq&=^hancxcxopqfxo_vbqq!eo'
+env SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', False)
 
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    'trwwapi.herokuapp.com'
-]
+# Check for these variables, each defined as a comma-separated string in the .env file
 
-INTERNAL_IPS = [
-    'localhost',
-    '127.0.0.1'
-]
+ALLOWED_HOSTS = [path for path in os.environ.get('ALLOWED_HOSTS', '').split(',') if path]
 
-CORS_ORIGIN_WHITELIST = [
-    "https://3rww.github.io",
-    "http://localhost:3000"
-]
+# For CORS (corsheaders app)
+CORS_ORIGIN_WHITELIST = [path for path in os.environ.get('CORS_ORIGIN_WHITELIST', '').split(',') if path]
+print("CORS_ORIGIN_WHITELIST", CORS_ORIGIN_WHITELIST)
+
+# For the Django Debug Toolbar (debug_toolbar app):
+INTERNAL_IPS = [path for path in os.environ.get('INTERNAL_IPS', '').split(',') if path]
 
 
 # Application definition
@@ -112,8 +107,8 @@ WSGI_APPLICATION = 'trwwapi.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
-DATABASES = {    
-    'default': {        
+DATABASES = {
+    'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': os.getenv('DB_NAME'),
         'USER': os.getenv('DB_USER'),
@@ -196,16 +191,18 @@ REST_FRAMEWORK = {
 
 # ------------------------------------------------------------------------------
 # JOB QUEUES
+# Using Python RQ via Django RQ here. Note that the URL for Redis will come
+# from the env by default--this is the case in production. For development, it's
+# looking for the named container 'redis' as stood up by docker-compose
 
 RQ_QUEUES = {
     'default': {
-        # 'URL': os.getenv('REDISTOGO_URL', 'redis://localhost:6379/0'),
-        'URL': os.getenv('REDISTOGO_URL', 'redis://redis:6379/0'),
+        'URL': os.getenv('REDIS_URL', 'redis://redis:6379/0'),
         'DEFAULT_TIMEOUT': 900,
     }
 }
 
-RQ_API_TOKEN=os.getenv('RQ_API_TOKEN', 'test-rq-token')
+# RQ_API_TOKEN=os.getenv('RQ_API_TOKEN', 'test-rq-token')
 RQ_SHOW_ADMIN_LINK = True
 
 # ------------------------------------------------------------------------------
