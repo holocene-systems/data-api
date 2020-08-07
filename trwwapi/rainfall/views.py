@@ -29,7 +29,6 @@ from .serializers import (
     parse_and_validate_args
 )
 from .models import (
-    AWSAPIGWMock, 
     GarrObservation, 
     GaugeObservation, 
     RtrrObservation, 
@@ -86,7 +85,7 @@ def _parse_request(request):
     return raw_args
 
 @job
-def _handler(postgres_table_model, raw_args=None):
+def get_rainfall_data(postgres_table_model, raw_args=None):
 
     # print("request made to", postgres_table_model, raw_args)
 
@@ -151,7 +150,7 @@ def _handler(postgres_table_model, raw_args=None):
     # **validate** the arguments using a marshmallow model
     # this will convert datetimes to the proper format, check formatting, etc.
     try:
-        print("parse_and_validate_args")
+        # print("parse_and_validate_args")
         args = parse_and_validate_args(raw_args)
         # print(args)
     # return errors from validation
@@ -180,7 +179,7 @@ def _handler(postgres_table_model, raw_args=None):
     # make up the primary keys in the database
     
     # parse the datetime parameters into a complete list of all possible date times
-    print("parse_datetime_args")
+    # print("parse_datetime_args")
     dts = parse_datetime_args(args['start_dt'], args['end_dt'], args['rollup'])
     # print(dts)
 
@@ -214,7 +213,7 @@ def _handler(postgres_table_model, raw_args=None):
 
     # use parsed args and datetime list to query the database
     try:
-        print("query_pgdb")
+        # print("query_pgdb")
         results = query_pgdb(postgres_table_model, sensor_ids, dts)
     except Exception as e:
         messages.add("Could not retrieve records from the database. Error(s): {0}".format(str(e)))
@@ -231,21 +230,21 @@ def _handler(postgres_table_model, raw_args=None):
     if len(results) > 0:
         
         # perform selects and/or aggregations based on zerofill and interval args
-        print("aggregate_results_by_interval")
+        # print("aggregate_results_by_interval")
         aggregated_results = aggregate_results_by_interval(results, args['rollup'])
         #print("aggregated results\n", etl.fromdicts(aggregated_results))
-        print("apply_zerofill")
+        # print("apply_zerofill")
         zerofilled_results = apply_zerofill(aggregated_results, args['zerofill'], dts)
         # transform the data to the desired format, if any
-        print("format_results")
+        # print("format_results")
         response_data = format_results(zerofilled_results, args['f']) #, ref_geojson)
 
         # return the result
-        print("completed, returning the results")
+        # print("completed, returning the results")
 
         # if the request was for a csv in the legacy teragon format, then we only return that
         if args['f'] in F_CSV:
-            print('returning legacy CSV format')
+            # print('returning legacy CSV format')
             return Response(response_data, status=status.HTTP_200_OK, content_type="text/csv")
         else:
             response = ResponseSchema(
@@ -267,7 +266,7 @@ def _handler(postgres_table_model, raw_args=None):
         )
         #return Response(response.as_dict(), status=status.HTTP_200_OK)
     
-    print("RESPONSE", response.as_dict())
+    # print("RESPONSE", response.as_dict())
     return response.as_dict()
 
     
@@ -298,11 +297,12 @@ class ApiDefaultRouter(routers.DefaultRouter):
 # these are the views that do the work for us
 
 def handle_request_for(rainfall_model, request, *args, **kwargs):
-    """Helper function that routes requests relative to the job queue.
+    """Helper function that routes requests to get_rainfall to a job queue,
+    and returns responses with a URL to the job results
     """
 
     raw_args = _parse_request(request)
-    print(args, kwargs, raw_args)
+    # print(args, kwargs, raw_args)
 
     # if the incoming request includes the jobid path argument,
     # then we check for the job in the queue and return its status
@@ -311,18 +311,18 @@ def handle_request_for(rainfall_model, request, *args, **kwargs):
         q = get_queue()
         queued_job_ids = q.job_ids
         job = q.fetch_job(kwargs['jobid'])
-        print("fetched job", job)
+        # print("fetched job", job)
 
         # if that job exists then we return the status and results, if any
         if job:
-            print("{} is in the queue".format(job.id))
+            # print("{} is in the queue".format(job.id))
             
             # in this case, the absolute URI is the one that got us here,
             # and includes the job id.
             job_url = request.build_absolute_uri()
             job_meta = {
-                "job-id": job.id,
-                "job-url": job_url
+                "jobId": job.id,
+                "jobUrl": job_url
             }
             # job status: one of [queued, started, deferred, finished, failed]
             # (comes direct from Python-RQ)
@@ -374,8 +374,8 @@ def handle_request_for(rainfall_model, request, *args, **kwargs):
     # If not, this is a new request. Queue it up and return the job status
     # and a URL for checking on the job status
     else:
-        print("This is a new request.", raw_args)
-        job = _handler.delay(rainfall_model, raw_args)
+        # print("This is a new request.", raw_args)
+        job = get_rainfall_data.delay(rainfall_model, raw_args)
         job_url = "{0}{1}/".format(request.build_absolute_uri(request.path), job.id)
         response = ResponseSchema(
             # queued, started, deferred, finished, or failed
@@ -383,8 +383,8 @@ def handle_request_for(rainfall_model, request, *args, **kwargs):
             status_message=job.get_status(),
             messages=['running job {0}'.format(job.id)],
             meta={
-                "job-id": job.id,
-                "job-url": job_url
+                "jobId": job.id,
+                "jobUrl": job_url
             }
         )
 
@@ -396,7 +396,7 @@ class RainfallGaugeApiView(APIView):
     def get(self, request, *args, **kwargs):
         return handle_request_for(GaugeObservation, request, *args, **kwargs)
 
-    def post(self, request, *args, **kw):
+    def post(self, request, *args, **kwargs):
         return handle_request_for(GaugeObservation, request, *args, **kwargs)
 
 
@@ -405,7 +405,7 @@ class RainfallGarrApiView(APIView):
     def get(self, request, *args, **kwargs):
         return handle_request_for(GarrObservation, request, *args, **kwargs)
 
-    def post(self, request, *args, **kw):
+    def post(self, request, *args, **kwargs):
         return handle_request_for(GarrObservation, request, *args, **kwargs)
 
 
@@ -414,7 +414,7 @@ class RainfallRtrrApiView(APIView):
     def get(self, request, *args, **kwargs):
         return handle_request_for(RtrrObservation, request, *args, **kwargs)
 
-    def post(self, request, *args, **kw):
+    def post(self, request, *args, **kwargs):
         return handle_request_for(RtrrObservation, request, *args, **kwargs)
 
 
@@ -423,7 +423,7 @@ class RainfallRtrgApiView(APIView):
     def get(self, request, *args, **kwargs):
         return handle_request_for(RtrgObservation, request, *args, **kwargs)
 
-    def post(self, request, *args, **kw):
+    def post(self, request, *args, **kwargs):
         return handle_request_for(RtrgObservation, request, *args, **kwargs)
 
 

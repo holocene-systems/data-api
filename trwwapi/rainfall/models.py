@@ -100,24 +100,3 @@ MODELNAME_TO_GEOMODEL_LOOKUP = {
     RtrrObservation._meta.object_name: Pixel,
     GaugeObservation._meta.object_name: Gauge
 }
-
-@dataclass
-class AWSAPIGWMock():
-    """Generate a dictionary that looks like *part* of the JSON emitted by an AWS API Gateway event, e.g.,:
-    {
-        "httpMethod": "POST",
-        "body": "zerofill=yes&startyear=2010&startmonth=8&startday=12&starthour=0&endyear=2010&endmonth=8&endday=12&endhour=13&pixels=135,142;135,143;135,144;155,118",
-        "resource": "/rainfall/v1/pixel",
-        "queryStringParameters": null,
-        "multiValueQueryStringParameters": null
-    }
-    Use to assist passing DRF request objects into code designed for interfacing AWS API Gateway with AWS Lambda.
-    """
-    httpMethod: str = ""
-    resource: str = ""
-    body: str = None
-    queryStringParameters: str = None
-    multiValueQueryStringParameters: str = None
-
-    def as_dict(self):
-        return self.__dict__

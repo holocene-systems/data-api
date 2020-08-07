@@ -185,7 +185,7 @@ class ResponseSchema:
         :type response_data: list or dict, optional
         :param status_code: http status code, defaults to 200
         :type status_code: int, optional
-        :param message: detailed message, defaults to None
+        :param message: message, one of [queued, started, deferred, finished, failed]; defaults to success
         :type message: str, optional
         :param meta: contains job metadata and post-processing stats, including an auto-calc'd row count if response_data is parsed; defaults to None
         :type meta: dict, optional
