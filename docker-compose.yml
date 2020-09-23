@@ -18,7 +18,7 @@ services:
     app:
         build: 
             context: .
-            dockerfile: docker/app/Dockerfile
+            dockerfile: docker/trwwapi/Dockerfile
         command: python3 manage.py runserver 0.0.0.0:7000
         depends_on:
             # - db
@@ -31,7 +31,7 @@ services:
     worker:
         build:
             context: .
-            dockerfile: docker/app/Dockerfile
+            dockerfile: docker/trwwapi/Dockerfile
         command: python3 manage.py rqworker default
         depends_on:
             - app        
