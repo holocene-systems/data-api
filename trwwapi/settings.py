@@ -35,18 +35,19 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', False)
-
+# print("DEBUG", DEBUG)
 # Check for these variables, each defined as a comma-separated string in the .env file
 
 ALLOWED_HOSTS = [path for path in os.environ.get('ALLOWED_HOSTS', '').split(',') if path]
+# print("ALLOWED_HOSTS", CORS_ORIGIN_WHITELIST)
 
 # For CORS (corsheaders app)
 CORS_ORIGIN_WHITELIST = [path for path in os.environ.get('CORS_ORIGIN_WHITELIST', '').split(',') if path]
-print("CORS_ORIGIN_WHITELIST", CORS_ORIGIN_WHITELIST)
+# print("CORS_ORIGIN_WHITELIST", CORS_ORIGIN_WHITELIST)
 
 # For the Django Debug Toolbar (debug_toolbar app):
 INTERNAL_IPS = [path for path in os.environ.get('INTERNAL_IPS', '').split(',') if path]
-
+# print("INTERNAL_IPS", INTERNAL_IPS)
 
 # Application definition
 
