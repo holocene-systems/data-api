@@ -10,6 +10,12 @@ This is currently a work-in-progress.
 
 ## Usage
 
+### Rainfall: `/rainfall`
+
+(to be completed)
+
+### Rainways: `/rainways`
+
 (to be completed)
 
 ## Development

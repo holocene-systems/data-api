@@ -27,7 +27,7 @@ base_dir_path = Path(BASE_DIR)
 main_app_name = 'trwwapi'
 
 
-# Quick-start development settings - unsuitable for production
+# Development settings
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
@@ -39,7 +39,7 @@ DEBUG = os.environ.get('DEBUG', False)
 # Check for these variables, each defined as a comma-separated string in the .env file
 
 ALLOWED_HOSTS = [path for path in os.environ.get('ALLOWED_HOSTS', '').split(',') if path]
-# print("ALLOWED_HOSTS", CORS_ORIGIN_WHITELIST)
+# print("ALLOWED_HOSTS", ALLOWED_HOSTS)
 
 # For CORS (corsheaders app)
 CORS_ORIGIN_WHITELIST = [path for path in os.environ.get('CORS_ORIGIN_WHITELIST', '').split(',') if path]
