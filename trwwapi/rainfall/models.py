@@ -98,5 +98,6 @@ class Gauge(PandasModelMixin):
 MODELNAME_TO_GEOMODEL_LOOKUP = {
     GarrObservation._meta.object_name: Pixel,
     RtrrObservation._meta.object_name: Pixel,
-    GaugeObservation._meta.object_name: Gauge
+    GaugeObservation._meta.object_name: Gauge,
+    RtrgObservation._meta.object_name: Gauge
 }
