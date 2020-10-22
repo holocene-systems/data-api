@@ -1,33 +1,33 @@
 version: '3'
 services:
-    # db:
-    #     image: quay.io/azavea/postgis:3-postgres12.2-slim
-    #     env_file: .env.dev            
-    #     ports: 
-    #         - "5432:5432"
-    #     restart: always
-    #     volumes:
-    #         - pgdata:/var/lib/postgresql/data/
-    # db-init:
-    #     build:
-    #         context: .
-    #         dockerfile: docker/db-init/Dockerfile
-    #     depends_on:
-    #         - db
-    #     env_file: .env.dev
+    db:
+        image: quay.io/azavea/postgis:3-postgres12.2-slim
+        ports: 
+            - "5432:5432"
+        restart: always
+        volumes:
+            - /var/lib/postgresql/data/
+        env_file: .env.dev
+    db-init:
+        build:
+            context: .
+            dockerfile: docker/db-init/Dockerfile
+        depends_on:
+            - db
+        env_file: .env.dev
     app:
         build: 
             context: .
             dockerfile: docker/trwwapi/Dockerfile
         command: python3 manage.py runserver 0.0.0.0:7000
         depends_on:
-            # - db
+            - db
             - redis
-        env_file: .env
         ports:
             - "7000:7000"
         volumes:
           - .:/code
+        env_file: .env.dev
     worker:
         build:
             context: .
@@ -39,7 +39,9 @@ services:
             DEBUG: 1
         volumes:
             - .:/code
+        env_file: .env.dev
     redis:
         image: redis:alpine
         ports:
             - "6379:6379"
+        env_file: .env.dev
