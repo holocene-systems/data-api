@@ -17,7 +17,7 @@ from django.db.models import Q
 
 
 from .models import RequestSchema, RainfallObservation, TableGARR15, TableGauge15, TableRTRR15
-from .utils import datetime_range
+from .utils import datetime_range, dt_parser
 from .config import (
     DATA_DIR,
     TZI,
@@ -32,6 +32,7 @@ from .config import (
     INTERVAL_DAILY,
     INTERVAL_SUM,
     TZ,
+    TZ_STRING,
     TZINFOS,
     F_CSV,
     F_GEOJSON,
@@ -150,9 +151,7 @@ def parse_sensor_ids(id_string, fallback_ref_geojson, delimiter=DELIMITER):
     return list(map(lambda f: str(f['id']), fc['features']))
 
 def parse_datetime_args(start_dt, end_dt, interval=None, delta=15):
-    """parse start and end datetimes into a list of all datetimes between 
-    (inclusive). We do this so we can make targeted querys of on DynamoDB--
-    no scan/filter required.
+    """parse start and end datetimes, based on the selected interval.
 
     For intervals other than base, adjust the datetimes so that enough records 
     are acquired for aggregation later.
@@ -162,6 +161,18 @@ def parse_datetime_args(start_dt, end_dt, interval=None, delta=15):
     of rainfall but with an interval of "daily" returns the rainfall total 
     for that day regardless of the hours spec'd; a request from noon on 
     day 1 through noon on day 3 gets complete daily totals for the 3 days.
+
+    :param start_dt: [description]
+    :type start_dt: datetime.datetime
+    :param end_dt: [description]
+    :type end_dt: datetime.datetime
+    :param interval: [description], defaults to None
+    :type interval: [type], optional
+    :param delta: [description], defaults to 15
+    :type delta: int, optional
+    :raises ValueError: [description]
+    :return: [description]
+    :rtype: [type]
     """
 
     # ---------------------------------
@@ -193,25 +204,22 @@ def parse_datetime_args(start_dt, end_dt, interval=None, delta=15):
     # adjust start and end params based on interval
 
     if interval == INTERVAL_DAILY:
-        # => if interval=daily, then we'll need all intervals for both days
-        
-        # 'round down' to beginning of this day
-        start_dt = start_dt.replace(hour=0, minute=0)
-        # 'round up' beginning of next day from end_dt
-        #end_dt = end_dt + timedelta(days=1)
-        #end_dt = end_dt.replace(hour=0, minute=0)
-        end_dt = end_dt.replace(hour=23, minute=45)
+        # => if interval=daily, then we'll get all intervals between (inclusive)
+        # for any days in both datetimes
 
-        # Maybe This? if interval=daily, then set end time as one day from start time 
+        # 'round down' to beginning of this day
+        start_dt = start_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+        # the end of this day is the beginning of the next day:
+        end_dt = end_dt + timedelta(days=1)
+        end_dt = end_dt.replace(hour=0, minute=0, second=0, microsecond=0)
 
     elif interval == INTERVAL_HOURLY:
-        # NOTE: this isn't doing anything if we don't enable minutes as a an arg
-
         # => if interval=hourly, then get intervals for overlapping hours
-        start_dt = start_dt.replace(minute=0) # 'round down' to beginning of this hour
-        end_dt = end_dt + timedelta(hours=1) # 'round up' beginning of next hour from end_dt
-        end_dt = end_dt.replace(minute=0)
-        # Maybe This? if interval=hourly, then set end time as one hour from start time
+        # 'round down' to beginning of this hour
+        start_dt = start_dt.replace(minute=0, second=0, microsecond=0) 
+        # the end hour is the beginning of the hour after
+        end_dt = end_dt + timedelta(hours=1)
+        end_dt = end_dt.replace(minute=0, second=0, microsecond=0)
 
     else:
         # NOTE: we might need to do things here with this if we enable minutes as a an arg
@@ -219,16 +227,18 @@ def parse_datetime_args(start_dt, end_dt, interval=None, delta=15):
         # => if interval=15-minute (default), then we'll get all intervals
         pass
     
-    dts = [
-        dt.isoformat() for dt in 
-        datetime_range(
-            start_dt, 
-            end_dt, 
-            timedelta(minutes=delta)
-        )
-    ]
+    # calculate all datetimes between the start and end at 15 minute intervals.
+    # dts = [
+    #     dt.isoformat() for dt in 
+    #     datetime_range(
+    #         start_dt, 
+    #         end_dt, 
+    #         timedelta(minutes=delta)
+    #     )
+    # ]
     # print(len(dts), "datetimes to be queried")
-    return dts
+    # return dts
+    return [start_dt, end_dt]
 
 @retry(stop=(stop_after_attempt(5) | stop_after_delay(60)), wait=wait_random_exponential(multiplier=2, max=30), reraise=True)
 def query_ddb_exact(pynamodb_table, sensor_ids, all_datetimes):
@@ -262,25 +272,35 @@ def query_ddb_exact(pynamodb_table, sensor_ids, all_datetimes):
     return records
 
 @retry(stop=(stop_after_attempt(5) | stop_after_delay(60)), wait=wait_random_exponential(multiplier=2, max=30), reraise=True)
-def query_pgdb(postgres_table_model, sensor_ids, all_datetimes):
+def query_pgdb(postgres_table_model, sensor_ids, all_datetimes, timezone=TZ):
 
     tablename = postgres_table_model.objects.model._meta.db_table
-    print("querying {0}".format(tablename))
-
+    print("querying: {0}".format(tablename))
+    print(all_datetimes[0], all_datetimes[-1])
+    # query the database:
     queryset = postgres_table_model.objects.filter(
         Q(timestamp__gte=all_datetimes[0]),
         Q(timestamp__lte=all_datetimes[-1])
     )
+    # read results into a dataframe:
+    df = postgres_table_model.as_dataframe(queryset)
+    # the output will have timezone-aware timestamps in UTC; convert
+    # to local timezone
+    df['timestamp'] = df['timestamp'].dt.tz_convert(timezone)
 
-    rows = postgres_table_model.as_dataframe(queryset).to_dict(orient='records')
+    print(list(df['timestamp']))
 
-    # if sensor ids are spec'd we filter the rest out of the rows first.
+    rows = df.to_dict(orient='records')
+
+    # if sensor ids are spec'd we filter the rest out of the rows
     if sensor_ids:
         for row in rows:
             for sensor_id, observation in row['data'].items():
                 row['data'] = dict((k, row['data'][k]) for k in sensor_ids if k in row['data'])
     
-    # then we create a new table where every row represents a single observation for a single sensor
+    # then we create a new table where every row represents a single observation 
+    # for a single sensor; datetime objects are converted to ISO 8061 formatted 
+    # strings here.
     newrows = []
     for row in rows:
         for sensor_id, observation in row['data'].items():
@@ -291,6 +311,21 @@ def query_pgdb(postgres_table_model, sensor_ids, all_datetimes):
 def _rollup_date(dts, interval=None):
     """format date/time string based on interval spec'd for summation
     """
+
+    if interval == INTERVAL_DAILY:
+        # strip the time entirely from the datetime string. Timezone is lost.
+        return parse(dts).strftime("%Y-%m-%d")
+    elif interval == INTERVAL_HOURLY:
+        # set the minutes, seconds, and microsecond to zeros. Timezone is preserved.
+        return parse(dts).replace(minute=0, second=0, microsecond=0).isoformat()
+        # NOTE: It may be more appropriate to use a timedelta+1 hour here,
+        # if the rainfall is to be interpreted as the total *up to* a point in time.
+        # Otherwise the current method returns the total for the hour, e.g a
+        # rainfall total of 1 inch with a timestamp of "2020-04-07T10:00:00-04:00" 
+        # is actually 1 inch for intervals within the 10 o'clock hour.
+    else:
+        # return it as-is
+        return dts
     # print(dts, type(dts))
     s = "%Y-%m" # initial datetime string format - always years and months
     if interval == INTERVAL_DAILY:
@@ -316,11 +351,10 @@ def _listset(i):
 
 def _minmax(i):
     vals = list(set(i))
-    return "{0}/{1}".format(min(vals), max(vals))
-    return "{0}/{1}".format(
-        TZ.localize(parse(min(vals))), 
-        TZ.localize(parse(max(vals)))
-    )
+    start_dt = dt_parser(min(vals), tz_string=TZ_STRING, tzi=TZI, tzinfos=TZINFOS)
+    end_dt = dt_parser(max(vals), tz_string=TZ_STRING, tzi=TZI, tzinfos=TZINFOS)
+
+    return "{0}/{1}".format(start_dt, end_dt)
 
 def aggregate_results_by_interval(query_results, rollup):
     """aggregate the values in the query results based on the rollup args
@@ -350,7 +384,7 @@ def aggregate_results_by_interval(query_results, rollup):
             .fromdicts(query_results)\
             .convert(
                 'ts', 
-                lambda v: _rollup_date(v, rollup), # convert datetimes to their rolled-up value
+                lambda v: _rollup_date(v, rollup), # convert datetimes to their rolled-up value in iso-format
                 failonerror=True
             )\
             .convert(
@@ -363,17 +397,17 @@ def aggregate_results_by_interval(query_results, rollup):
                 petl_aggs # aggregate rainfall values (sum) and sources (list) for each timestamp+ID combo,
             )\
             .convert(
-                'ts', 
-                lambda v: TZ.localize(parse(v)).isoformat(), # convert that datetime to iso format w/ timezone
-                failonerror=True
-            )\
-            .convert(
                 'val', 
                 lambda v, r: None if ('N/D' in r.src and v == 0) else v, # replace 0 values with no data if aggregated source says its N/D
                 pass_row=True,
                 failonerror=True
             )\
             .sort('id')
+            # .convert(
+            #     'ts', 
+            #     lambda v: TZ.localize(parse(v)).isoformat(), # convert that datetime to iso format w/ timezone
+            #     failonerror=True
+            # )
 
         # print(t)
 

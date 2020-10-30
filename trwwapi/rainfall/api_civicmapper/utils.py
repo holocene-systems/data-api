@@ -5,6 +5,11 @@ from dateutil.parser import parse
 from pytz import timezone
 
 def dt_parser(dt_string, tz_string, tzi, tzinfos):
+    """Parses a datetime string with date-util's parser, reads the timezone 
+    if it's available *or assigns timezone if there is none using the supplied 
+    params*, then converts it to the local timezone specificed in the params. 
+    Returns ISO-8061 formatted string.
+    """
 
     if dt_string:
         tz = timezone(tz_string)
@@ -14,6 +19,8 @@ def dt_parser(dt_string, tz_string, tzi, tzinfos):
 
         if dt.tzinfo is None:
             return tz.localize(dt).astimezone(tzi).isoformat()
+        elif dt.tzinfo != tzi:
+            return dt.astimezone(tzi).isoformat()
         else:
             return dt.isoformat()
 

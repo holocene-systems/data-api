@@ -47,6 +47,8 @@ def get_rainfall_data(postgres_table_model, raw_args=None):
     if not raw_args:
         raw_args = {}
     
+    # by default, if no start or end datetimes provided, get those from the
+    # latest available rainfall report.
     if all(['start_dt' not in raw_args.keys(),'end_dt' not in raw_args.keys()]):
         latest_report = ReportEvent.objects.first()
         # if there are events available, fall back to one of those
@@ -56,7 +58,8 @@ def get_rainfall_data(postgres_table_model, raw_args=None):
             raw_args['start_dt'] = localtime(latest_report.start_dt, TZ).isoformat()
             raw_args['end_dt'] = localtime(latest_report.end_dt, TZ).isoformat()
             messages.add("Using the latest available rainfall event data by a default.")
-        # otherwise get a a sna of latest available data
+        # if reports aren't available, then fallback to getting the latest 
+        # available data
         else:
             try:
                 last_data_point = postgres_table_model.objects.latest('timestamp')
@@ -89,12 +92,12 @@ def get_rainfall_data(postgres_table_model, raw_args=None):
     # -------------------------------------------------------------------
     # validate the request arguments
 
-    # **validate** the arguments using a marshmallow model
+    # **validate** all request arguments using a marshmallow schema
     # this will convert datetimes to the proper format, check formatting, etc.
     try:
         # print("parse_and_validate_args")
         args = parse_and_validate_args(raw_args)
-        # print(args)
+        print(args)
     # return errors from validation
     except ValidationError as e:
         messages.add("{1}. See documentation for example requests.".format(e.messages))
@@ -123,7 +126,6 @@ def get_rainfall_data(postgres_table_model, raw_args=None):
     # parse the datetime parameters into a complete list of all possible date times
     # print("parse_datetime_args")
     dts = parse_datetime_args(args['start_dt'], args['end_dt'], args['rollup'])
-    # print(dts)
 
     # TODO: check for  datetime + rollup parameters here
     # if any([
@@ -213,8 +215,10 @@ def get_rainfall_data(postgres_table_model, raw_args=None):
 
 
 def handle_request_for(rainfall_model, request, *args, **kwargs):
-    """Helper function that routes requests through get_rainfall_data to a job 
-    queue, and returns responses with a URL to the job results
+    """Helper function that handles the routing of requests through 
+    get_rainfall_data to a job queue. Returns responses with a 
+    URL to the job results. Responsible for forming the shape, but not content, 
+    of the response.
     """
 
     raw_args = _parse_request(request)

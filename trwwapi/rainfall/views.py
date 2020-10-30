@@ -52,8 +52,7 @@ from .api_civicmapper.config import (
 from .api_civicmapper.core import (
     parse_sensor_ids, 
     parse_sensor_ids, 
-    parse_datetime_args, 
-    query_pgdb,
+    parse_datetime_args,
     aggregate_results_by_interval,
     apply_zerofill,
     format_results
