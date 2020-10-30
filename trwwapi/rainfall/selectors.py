@@ -126,6 +126,7 @@ def get_rainfall_data(postgres_table_model, raw_args=None):
     # parse the datetime parameters into a complete list of all possible date times
     # print("parse_datetime_args")
     dts = parse_datetime_args(args['start_dt'], args['end_dt'], args['rollup'])
+    # print(dts)
 
     # TODO: check for  datetime + rollup parameters here
     # if any([

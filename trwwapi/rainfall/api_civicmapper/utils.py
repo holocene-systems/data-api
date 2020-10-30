@@ -61,3 +61,18 @@ def get_envvar_w_fallback(name, fallback=None):
         if environ[name].strip():
             return environ[name]
     return fallback
+
+
+def is_same_hour_of_same_day(dt0, dt1):
+    return all([
+        dt0.date() == dt1.date(),
+        dt0.hour == dt1.hour
+    ])
+
+def is_same_time_of_same_day(dt0, dt1):
+    dt0.replace(second=0, microsecond=0)
+    dt1.replace(second=0, microsecond=0)
+    return all([
+        dt0.date() == dt1.date(),
+        dt0.time() == dt1.time()
+    ])

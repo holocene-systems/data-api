@@ -32,6 +32,7 @@ INTERVAL_MONTHLY = "monthly"
 INTERVAL_SUM = "total"
 INTERVAL_TRUTHS = [INTERVAL_15MIN, INTERVAL_HOURLY, INTERVAL_DAILY, INTERVAL_MONTHLY, INTERVAL_SUM]
 ZEROFILL_TRUTHS = ['yes', 'true', '1', 'zerofill']
+MIN_INTERVAL = 15 # minimum temporal resolution of the data, in minutes
 
 # configure timezone objects
 TZ_STRING="America/New_York"

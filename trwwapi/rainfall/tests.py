@@ -1,9 +1,18 @@
 from django.test import Client as client
 import pytest
 
-from .api_civicmapper.core import parse_datetime_args, _minmax
+from dateutil.parser import parse
+
+from .api_civicmapper.core import (
+    parse_datetime_args, 
+    _minmax,
+    _rollup_date
+)
 from .api_civicmapper.utils import dt_parser
-from .api_civicmapper.config import TZ, TZI, TZ_STRING, TZINFOS
+from .api_civicmapper.config import (
+    TZ, TZI, TZ_STRING, TZINFOS, 
+    INTERVAL_15MIN, INTERVAL_HOURLY, INTERVAL_DAILY, INTERVAL_SUM
+)
 
 # @pytest.mark.django_db
 # def test_rainfall_garr_response(client):
@@ -44,7 +53,6 @@ class TestRequestDatetimeParamParsing:
 
     Note that if there is no rollup (i.e., 15-min intervals), they're read 
     back in as-is.
-
     """
 
 
@@ -69,7 +77,55 @@ class TestRequestDatetimeParamParsing:
         assert "2020-04-08T12:00:00-04:00" == dt_parser("2020-04-08T12:00", tz_string=TZ_STRING, tzi=TZI, tzinfos=TZINFOS)
 
     def test_other_dt_formats_w_no_tz(self):
-        pass    
+        pass 
+
+
+    # --------------------------------
+    # Test the logic for picking the right min and max datetimes, specifically
+    # in cases where the results are to be aggregated to hour or day.
+    # This tests what timestamps will be used to query the database with a
+    # "timestamp > start_dt and timestamp <= end_dt" conditional
+
+    def test_parse_args_daily_same_day(self):
+        start, end = parse_datetime_args(parse("2020-04-07T06:00:00-04:00"), parse("2020-04-07T14:00:00-04:00"), interval=INTERVAL_DAILY)
+        assert start.isoformat() == "2020-04-07T00:00:00-04:00"
+        assert end.isoformat() == "2020-04-08T00:00:00-04:00"
+
+    def test_parse_args_daily_diff_day(self):
+        start, end = parse_datetime_args(parse("2020-04-17T11:00:00-04:00"), parse("2020-04-18T05:00:00-04:00"), interval=INTERVAL_DAILY)
+        assert start.isoformat() == "2020-04-17T00:00:00-04:00"
+        assert end.isoformat() == "2020-04-19T00:00:00-04:00"
+
+    def test_parse_args_hourly_same_hour(self):
+        start, end = parse_datetime_args(parse("2020-04-07T11:00:00-04:00"), parse("2020-04-07T11:47:00-04:00"), interval=INTERVAL_HOURLY)
+        assert start.isoformat() == "2020-04-07T11:00:00-04:00"
+        assert end.isoformat() == "2020-04-07T12:00:00-04:00"
+
+    def test_parse_args_hourly_diff_hour_on_hour(self):
+        start, end = parse_datetime_args(parse("2020-04-07T11:00:00-04:00"), parse("2020-04-07T13:00:00-04:00"), interval=INTERVAL_HOURLY)
+        assert start.isoformat() == "2020-04-07T11:00:00-04:00"
+        assert end.isoformat() == "2020-04-07T13:00:00-04:00"
+
+    def test_parse_args_hourly_diff_hour_off_hour(self):
+        start, end = parse_datetime_args(parse("2020-04-07T11:00:00-04:00"), parse("2020-04-07T13:15:00-04:00"), interval=INTERVAL_HOURLY)
+        assert start.isoformat() == "2020-04-07T11:00:00-04:00"
+        assert end.isoformat() == "2020-04-07T14:00:00-04:00"
+
+    def test_parse_args_hourly_diff_hour_off_hours(self):
+        start, end = parse_datetime_args(parse("2020-04-07T10:45:00-04:00"), parse("2020-04-07T13:15:00-04:00"), interval=INTERVAL_HOURLY)
+        assert start.isoformat() == "2020-04-07T10:00:00-04:00"
+        assert end.isoformat() == "2020-04-07T14:00:00-04:00"
+
+    def test_parse_args_hourly_diff_day_hour_on_hour(self):
+        start, end = parse_datetime_args(parse("2020-04-17T11:00:00-04:00"), parse("2020-04-18T05:00:00-04:00"), interval=INTERVAL_HOURLY)
+        assert start.isoformat() == "2020-04-17T11:00:00-04:00"
+        assert end.isoformat() == "2020-04-18T05:00:00-04:00"
+
+    def test_parse_args_hourly_diff_day_hour_off_hour(self):
+        start, end = parse_datetime_args(parse("2020-04-17T11:00:00-04:00"), parse("2020-04-18T05:20:00-04:00"), interval=INTERVAL_HOURLY)
+        assert start.isoformat() == "2020-04-17T11:00:00-04:00"
+        assert end.isoformat() == "2020-04-18T06:00:00-04:00"
+
 
     # --------------------------------
     # datetime ranges
@@ -98,20 +154,20 @@ class TestRequestDatetimeParamParsing:
         assert mixed_formats == "2020-05-01T00:00:00-04:00/2020-05-31T23:59:59-04:00"
 
     # --------------------------------
-    # Test rollup range logic
-    # Test the logic for picking the right min and max datetimes in cases
-    # where the results are to be aggregated to hour, day.
+    # test datetime rollup logic when aggregating results
 
-    # def test_parse_datetime_args():
-    #     r1 = parse_datetime_args(["2020-05-29")
+    def test_rollup_daily(self):
+        r = _rollup_date("2020-04-17T11:00:00-04:00", INTERVAL_DAILY)
+        assert "2020-04-17" == r
 
-    # def test_correct_dt_parsing_from_event(self):
-    #     # events list start dt
-    #     beg_dt_1 = "2020-04-17T11:00:00-04:00"
-    #     end_dt_1 = "2020-04-18T05:00:00-04:00"
-    #     # shown as processed by API
-    #     beg_dt_2 = "2020-04-17T11:00:00-04:00"
-    #     end_dt_2 = "2020-04-18T05:00:00-04:00"
-    #     # returned in the results table
-    #     beg_dt_3 = "2020-04-17T15:00:00-04:00"
-    #     end_dt_3 = "2020-04-18T09:00:00-04:00"
+    def test_rollup_hourly_on_hour(self):
+        r = _rollup_date("2020-04-17T11:00:00-04:00", INTERVAL_HOURLY)
+        assert "2020-04-17T10:00:00-04:00/2020-04-17T11:00:00-04:00" == r
+
+    def test_rollup_hourly_off_hour(self):
+        r = _rollup_date("2020-04-17T11:15:00-04:00", INTERVAL_HOURLY)
+        assert "2020-04-17T11:00:00-04:00/2020-04-17T12:00:00-04:00" == r
+
+    def test_rollup_other(self):
+        r = _rollup_date("2020-04-17T11:18:00-04:00", INTERVAL_15MIN)
+        assert "2020-04-17T11:18:00-04:00" == r

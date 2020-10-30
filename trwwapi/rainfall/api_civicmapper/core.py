@@ -39,7 +39,8 @@ from .config import (
     F_JSON,
     F_MD,
     F_ALL,
-    F_ARRAYS
+    F_ARRAYS,
+    MIN_INTERVAL
 )
 
 # CONSTANTS ---------------------------------------------------------
@@ -206,20 +207,29 @@ def parse_datetime_args(start_dt, end_dt, interval=None, delta=15):
     if interval == INTERVAL_DAILY:
         # => if interval=daily, then we'll get all intervals between (inclusive)
         # for any days in both datetimes
-
         # 'round down' to beginning of this day
         start_dt = start_dt.replace(hour=0, minute=0, second=0, microsecond=0)
         # the end of this day is the beginning of the next day:
-        end_dt = end_dt + timedelta(days=1)
-        end_dt = end_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+        # the end_dt was exactly the start of the day (00:00) then we just use it
+        # cleaning up seconds
+        if end_dt.date() != start_dt.date() and end_dt.hour == 0 and end_dt.minute == 0:
+            end_dt = end_dt.replace(second=0, microsecond=0)
+        # otherwise we include the whole day
+        else:
+            end_dt = end_dt + timedelta(days=1)
+            end_dt = end_dt.replace(hour=0, minute=0, second=0, microsecond=0)
 
     elif interval == INTERVAL_HOURLY:
         # => if interval=hourly, then get intervals for overlapping hours
         # 'round down' to beginning of this hour
-        start_dt = start_dt.replace(minute=0, second=0, microsecond=0) 
-        # the end hour is the beginning of the hour after
-        end_dt = end_dt + timedelta(hours=1)
-        end_dt = end_dt.replace(minute=0, second=0, microsecond=0)
+        start_dt = start_dt.replace(minute=0, second=0, microsecond=0)
+        end_dt = end_dt.replace(second=0, microsecond=0)
+        # if the end hour is not the same as the beginning hour but is on the hour,
+        # then we use it. otherwise we do the thing.
+        if start_dt != end_dt and end_dt.minute != 0:
+            end_dt = end_dt + timedelta(hours=1)
+            end_dt = end_dt.replace(minute=0, second=0, microsecond=0)
+            
 
     else:
         # NOTE: we might need to do things here with this if we enable minutes as a an arg
@@ -279,7 +289,7 @@ def query_pgdb(postgres_table_model, sensor_ids, all_datetimes, timezone=TZ):
     print(all_datetimes[0], all_datetimes[-1])
     # query the database:
     queryset = postgres_table_model.objects.filter(
-        Q(timestamp__gte=all_datetimes[0]),
+        Q(timestamp__gt=all_datetimes[0]),
         Q(timestamp__lte=all_datetimes[-1])
     )
     # read results into a dataframe:
@@ -310,6 +320,13 @@ def query_pgdb(postgres_table_model, sensor_ids, all_datetimes, timezone=TZ):
 
 def _rollup_date(dts, interval=None):
     """format date/time string based on interval spec'd for summation
+
+    for Daily, it returns just the date. no time or timezeon
+
+    For Hourly, it returns an ISO-8061 datetime range. This provides previously
+    missing clarity around 
+
+
     """
 
     if interval == INTERVAL_DAILY:
@@ -317,25 +334,33 @@ def _rollup_date(dts, interval=None):
         return parse(dts).strftime("%Y-%m-%d")
     elif interval == INTERVAL_HOURLY:
         # set the minutes, seconds, and microsecond to zeros. Timezone is preserved.
-        return parse(dts).replace(minute=0, second=0, microsecond=0).isoformat()
-        # NOTE: It may be more appropriate to use a timedelta+1 hour here,
-        # if the rainfall is to be interpreted as the total *up to* a point in time.
-        # Otherwise the current method returns the total for the hour, e.g a
+
+        # This method returns the total for the hour, e.g a
         # rainfall total of 1 inch with a timestamp of "2020-04-07T10:00:00-04:00" 
         # is actually 1 inch for intervals within the 10 o'clock hour.
+        # return parse(dts).replace(minute=0, second=0, microsecond=0).isoformat()
+
+        # NOTE: It may be more appropriate to use a timedelta+1 hour here,
+        # if the rainfall is to be interpreted as the total *up to* a point in time.
+        # Because we're looking at accumulation, we want timestamps that
+        # represent rainfall accumulated during the previous fifteen minutes
+        # within the hour represented. So in a list of [1:00, 1:15, 1:30, 1:45, 
+        # 2:00], we scratch the 1:00 since it represents accumulation from
+        # 12:45 to 1:00, outside our hour of interest. Everything else rep's
+        # rain recorded between >1 and <=2 o'clock. We can get that by
+        # bumping everything back 15 minutes, then generating the hourly.
+
+        # start_dt = parse(dts).replace(minute=0, second=0, microsecond=0)
+        start_dt = parse(dts)
+        start_dt = start_dt - timedelta(minutes=MIN_INTERVAL)
+        start_dt = start_dt.replace(minute=0, second=0, microsecond=0)
+        end_dt = start_dt + timedelta(hours=1)
+        end_dt.replace(minute=0, second=0, microsecond=0)
+        return "{0}/{1}".format(start_dt.isoformat(), end_dt.isoformat())
+
     else:
         # return it as-is
         return dts
-    # print(dts, type(dts))
-    s = "%Y-%m" # initial datetime string format - always years and months
-    if interval == INTERVAL_DAILY:
-        s += "-%d" # add days
-    elif interval == INTERVAL_HOURLY:
-        s += "-%dT%H" # add days and hours
-    # by default returns year and month
-    dt = parse(dts).strftime(s)
-    # print(dt)
-    return dt
 
 def _sumround(i):
     """sum all values in iterable `i`, and round the result to 
