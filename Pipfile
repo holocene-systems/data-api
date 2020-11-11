@@ -37,6 +37,8 @@ pytz = "*"
 pyyaml = "*"
 django-cors-headers = "*"
 django-rq = "*"
+geopandas = "*"
+codetiming = "*"
 
 [requires]
 python_version = "3.8"

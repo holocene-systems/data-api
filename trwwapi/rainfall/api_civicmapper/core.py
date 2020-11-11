@@ -12,6 +12,7 @@ import pandas as pd
 import numpy as np
 from tenacity import retry, wait_random_exponential, stop_after_attempt, stop_after_delay
 import geojson
+from codetiming import Timer
 
 from django.db.models import Q
 
@@ -42,6 +43,7 @@ from .config import (
     F_ARRAYS,
     MIN_INTERVAL
 )
+
 
 # CONSTANTS ---------------------------------------------------------
 
@@ -281,7 +283,8 @@ def query_ddb_exact(pynamodb_table, sensor_ids, all_datetimes):
     print("returned", len(records), "records")
     return records
 
-@retry(stop=(stop_after_attempt(5) | stop_after_delay(60)), wait=wait_random_exponential(multiplier=2, max=30), reraise=True)
+# @retry(stop=(stop_after_attempt(5) | stop_after_delay(60)), wait=wait_random_exponential(multiplier=2, max=30), reraise=True)
+@Timer(name="query_pgdb", text="{name}: {:.4f}s")
 def query_pgdb(postgres_table_model, sensor_ids, all_datetimes, timezone=TZ):
 
     tablename = postgres_table_model.objects.model._meta.db_table
@@ -298,7 +301,7 @@ def query_pgdb(postgres_table_model, sensor_ids, all_datetimes, timezone=TZ):
     # to local timezone
     df['timestamp'] = df['timestamp'].dt.tz_convert(timezone)
 
-    print(list(df['timestamp']))
+    # print(list(df['timestamp']))
 
     rows = df.to_dict(orient='records')
 
@@ -316,6 +319,7 @@ def query_pgdb(postgres_table_model, sensor_ids, all_datetimes, timezone=TZ):
         for sensor_id, observation in row['data'].items():
             newrows.append(dict(ts=row['timestamp'].isoformat(), id=sensor_id, val=observation[0], src=observation[1]))
     # print(newrows)
+    print
     return newrows
 
 def _rollup_date(dts, interval=None):
@@ -381,6 +385,7 @@ def _minmax(i):
 
     return "{0}/{1}".format(start_dt, end_dt)
 
+@Timer(name="aggregate_results_by_interval", text="{name}: {:.4f}s")
 def aggregate_results_by_interval(query_results, rollup):
     """aggregate the values in the query results based on the rollup args
 
@@ -491,14 +496,23 @@ def apply_zerofill(transformed_results, zerofill, dts):
             # return an empty table
             return [{k: None for k in RAINFALL_BASE_MODEL_REF.get_attributes().keys()}]
 
-def _format_as_geojson(results, geojson_path):
-    """NOTE: NOT WORKING
+def _format_as_geojson(results, geodata_model):
+    """joins the results to the corresponding geojson via the Django model.
+
+    :param results: [description]
+    :type results: [type]
+    :param geodata_model: [description]
+    :type geodata_model: [type]
+    :return: [description]
+    :rtype: [type]
     """
 
     # read the geojson into a PETL table object
-    with open(geojson_path) as fp:
-        fc = geojson.load(fp)
-    features_table = etl.fromdicts(fc.features).convert('id', str)
+    # features_table = etl.fromdicts(fc.features).convert('id', str)
+
+    df = geodata_model.as_dataframe_using_drf_serializer(geodata_model.objects.all())
+
+    t = etl.fromdataframe(df)
 
     # join the results to the geojson features, then shoehorn the results into the properties object of each feature
     # put the ID into the id property of the feature
@@ -580,18 +594,17 @@ def _groupby(results, key='ts', sortby='id'):
         })
     return remapped
 
-def format_results(results, f): #, ref_geojson):
+@Timer(name="format_results", text="{name}: {:.4f}s")
+def format_results(results, f, geodata_model):
     """handle parsing the format argument to convert 
     the results 'table' into one of the desired formats
-
-    By default, this just passes through the DynamoDB response: a list of dicts
     
     :param results: [description]
     :type results: [type]
     :param f: [description]
     :type f: [type]
-    :param ref_geojson: [description]
-    :type ref_geojson: [type]
+    :param geodata_model: [description]
+    :type geodata_model: [type]
     :return: [description]
     :rtype: [type]
     """
@@ -616,8 +629,9 @@ def format_results(results, f): #, ref_geojson):
             return results
 
     # GEOJSON format (GeoJSON Feature collection; results under 'data' key within properties)
-    # elif f in F_GEOJSON:
-    #     return _format_as_geojson(results, ref_geojson)
+    elif f in F_GEOJSON:
+        results = _groupby(results, key='id', sortby='ts')
+        return _format_as_geojson(results, geodata_model)
 
     # ARRAYS format (2D table)
     elif f in F_ARRAYS:

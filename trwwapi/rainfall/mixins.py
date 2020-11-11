@@ -5,7 +5,9 @@ generic model mixins for the django-orm
 """
 
 import pandas as pd
+import geopandas as gpd
 from django.contrib.gis.db import models
+from rest_framework_gis.serializers import GeoFeatureModelSerializer
 from django.core import serializers
 from django.utils import timezone
 
@@ -67,7 +69,7 @@ class PandasModelMixin(models.Model):
         return df
 
     @classmethod
-    def as_dataframe_using_drf_serializer(cls, queryset=None, drf_serializer=None, field_list=None):
+    def as_dataframe_using_drf_serializer(cls, queryset=None, drf_serializer=None, field_list=None, as_gdf=False):
         from rest_framework import serializers
 
 
@@ -88,6 +90,8 @@ class PandasModelMixin(models.Model):
         columns = drf_serializer().get_fields().keys()
 
         df = pd.DataFrame(data, columns=columns)
+        if as_gdf:
+            df = gpd.GeoDataFrame(df)
 
         return df
 

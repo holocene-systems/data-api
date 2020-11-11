@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from marshmallow import ValidationError
 from django_rq import job, get_queue
+
 from ..utils import DebugMessages, _parse_request
 from .api_civicmapper.core import (
     parse_datetime_args,
@@ -18,7 +19,10 @@ from .api_civicmapper.config import (
     TZ,
     F_CSV
 )
-from .models import ReportEvent
+from .models import (
+    ReportEvent, 
+    MODELNAME_TO_GEOMODEL_LOOKUP
+)
 from .serializers import (
     RequestSchema,
     ResponseSchema,
@@ -97,7 +101,6 @@ def get_rainfall_data(postgres_table_model, raw_args=None):
     try:
         # print("parse_and_validate_args")
         args = parse_and_validate_args(raw_args)
-        print(args)
     # return errors from validation
     except ValidationError as e:
         messages.add("{1}. See documentation for example requests.".format(e.messages))
@@ -182,7 +185,11 @@ def get_rainfall_data(postgres_table_model, raw_args=None):
         zerofilled_results = apply_zerofill(aggregated_results, args['zerofill'], dts)
         # transform the data to the desired format, if any
         # print("format_results")
-        response_data = format_results(zerofilled_results, args['f']) #, ref_geojson)
+        response_data = format_results(
+            zerofilled_results, 
+            args['f'],
+            MODELNAME_TO_GEOMODEL_LOOKUP[postgres_table_model._meta.object_name]
+        )
 
         # return the result
         # print("completed, returning the results")
@@ -221,7 +228,7 @@ def handle_request_for(rainfall_model, request, *args, **kwargs):
     URL to the job results. Responsible for forming the shape, but not content, 
     of the response.
     """
-
+    job_meta = None
     raw_args = _parse_request(request)
     # print(args, kwargs, raw_args)
 
