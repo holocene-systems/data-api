@@ -39,6 +39,7 @@ django-cors-headers = "*"
 django-rq = "*"
 geopandas = "*"
 codetiming = "*"
+pyproj = "==2.6.1"
 
 [requires]
 python_version = "3.8"
