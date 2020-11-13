@@ -1,8 +1,8 @@
 # 3RWW API
 
-Low- and high-level views of environmental and infrastructure data for the Greater Pittsburgh Area, including:
+The 3RWW Data API provides low- and high-level views of environmental and infrastructure data for the Greater Pittsburgh Area, including:
 
-* historic rainfall
+* realtime and historic rainfall
 * storm and wastewater systems
 * terrain and landcover
 
