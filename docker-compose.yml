@@ -7,14 +7,14 @@ services:
         restart: always
         volumes:
             - /var/lib/postgresql/data/
-        env_file: .env.dev
+        env_file: .env.docker
     db-init:
         build:
             context: .
             dockerfile: docker/db-init/Dockerfile
         depends_on:
             - db
-        env_file: .env.dev
+        env_file: .env.docker
     app:
         build: 
             context: .
@@ -27,7 +27,7 @@ services:
             - "7000:7000"
         volumes:
           - .:/code
-        env_file: .env.dev
+        env_file: .env.docker
     worker:
         build:
             context: .
@@ -39,9 +39,9 @@ services:
             DEBUG: 1
         volumes:
             - .:/code
-        env_file: .env.dev
+        env_file: .env.docker
     redis:
         image: redis:alpine
         ports:
             - "6379:6379"
-        env_file: .env.dev
+        env_file: .env.docker
