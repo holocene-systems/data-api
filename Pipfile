@@ -43,6 +43,9 @@ geopandas = "*"
 codetiming = "*"
 pyproj = "==2.6.1"
 psycopg2-binary = "*"
+django-filter = "*"
+uritemplate = "*"
+drf-spectacular = "*"
 
 [requires]
 python_version = "3.8"
