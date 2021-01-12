@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from django.contrib.gis.db import models
 # from django.contrib.postgres.indexes import 
-from django.contrib.postgres.fields import JSONField
+from django.db.models import JSONField
 from django.db.models.constraints import UniqueConstraint
 from .mixins import PandasModelMixin, TimestampedMixin
 
@@ -46,7 +46,12 @@ class RtrgObservation(RainfallObservationMeta):
     pass
 
 
-class ReportEvent(PandasModelMixin, TimestampedMixin):
+class RainfallReport(TimestampedMixin):
+    month_start = models.DateField()
+    document = models.FileField()
+    # events = models.ManyToManyField('RainfallEvent')
+
+class RainfallEvent(PandasModelMixin, TimestampedMixin):
 
     report_label = models.CharField(max_length=255)
     event_label = models.CharField(max_length=255)
@@ -61,9 +66,6 @@ class ReportEvent(PandasModelMixin, TimestampedMixin):
         return self.event_label
 
 
-# TODO: create a report document model
-# class ReportDocument(PandasModelMixin):
-#    pass
 
 
 # TODO: create a class for managing and validating the contents of 
