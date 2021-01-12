@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta
 from django.utils.timezone import localtime
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import models
 from rest_framework import status
 from rest_framework.response import Response
 from marshmallow import ValidationError
+from dateutil import tz
 from django_rq import job, get_queue
 
 from ..utils import DebugMessages, _parse_request
@@ -20,14 +22,20 @@ from .api_civicmapper.config import (
     F_CSV
 )
 from .models import (
-    ReportEvent, 
+    RainfallEvent, 
+    GarrObservation,
+    GaugeObservation,
+    RtrgObservation,
+    RtrrObservation,
     MODELNAME_TO_GEOMODEL_LOOKUP
 )
 from .serializers import (
-    RequestSchema,
     ResponseSchema,
     parse_and_validate_args
 )
+
+# ------------------------------------------------------------------------------
+# SELECTOR+WORKER FOR THE HIGH LEVEL API VIEWS
 
 @job
 def get_rainfall_data(postgres_table_model, raw_args=None):
@@ -54,7 +62,7 @@ def get_rainfall_data(postgres_table_model, raw_args=None):
     # by default, if no start or end datetimes provided, get those from the
     # latest available rainfall report.
     if all(['start_dt' not in raw_args.keys(),'end_dt' not in raw_args.keys()]):
-        latest_report = ReportEvent.objects.first()
+        latest_report = RainfallEvent.objects.first()
         # if there are events available, fall back to one of those
         if latest_report:
             # We explicitly convert to localtime here because Django assumes datetimes
@@ -319,3 +327,38 @@ def handle_request_for(rainfall_model, request, *args, **kwargs):
         # return redirect(job_url)
         return Response(response.as_dict(), status=status.HTTP_200_OK)
 
+# ------------------------------------------------------------------------------
+# SELECTORS
+
+def _get_latest(model_class, timestamp_field="timestamp"):
+    fields = [f.name for f in model_class._meta.fields]
+    print(model_class)
+    
+    r = None
+    try:
+        if 'timestamp' in fields:
+            r = model_class.objects.latest(timestamp_field)
+        else:
+            r = model_class.objects\
+                .annotate(timestamp=models.ExpressionWrapper(models.F(timestamp_field), output_field=models.DateTimeField()))\
+                .latest(timestamp_field)
+        print(r)
+        return r
+    except (model_class.DoesNotExist, AttributeError):
+        return None
+
+
+def get_latest_garrobservation():
+    return _get_latest(GarrObservation)
+
+def get_latest_gaugeobservation():
+    return _get_latest(GaugeObservation)
+
+def get_latest_rtrrobservation():
+    return _get_latest(RtrrObservation)
+
+def get_latest_rtrgobservation():
+    return _get_latest(RtrgObservation)
+
+def get_latest_rainfallevent():
+    return _get_latest(RainfallEvent, 'start_dt')

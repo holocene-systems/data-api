@@ -1,28 +1,52 @@
 from django.urls import path, include
-from rest_framework.urlpatterns import format_suffix_patterns
+from rest_framework.schemas import get_schema_view
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
+# high-level endpoints
 from .views import ApiDefaultRouter
-# high-level vews
-from .views import RainfallGarrApiView, RainfallGaugeApiView, RainfallRtrrApiView, RainfallRtrgApiView
-# low-level views
-from .views import GarrObservationViewSet, GaugeObservationViewSet, RtrrObservationViewSet, RtrgbservationViewSet, ReportEventsViewSet
+from .views import (
+    RainfallGarrApiView, 
+    RainfallGaugeApiView, 
+    RainfallRtrrApiView, 
+    RainfallRtrgApiView, 
+    get_latest_observation_timestamps_summary
+)
+# viewsets
+from .views import (
+    GarrObservationViewset, 
+    GaugeObservationViewset, 
+    RtrrObservationViewset, 
+    RtrgbservationViewset, 
+    RainfallEventViewset
+)
 
 # -----------------------------------------------
-# router for low-level API routes
+# router for viewsets (low-level API endpoints)
+
 router = ApiDefaultRouter()
-
-router.register(r'calibrated-radar', GarrObservationViewSet)
-router.register(r'calibrated-gauge', GaugeObservationViewSet)
-router.register(r'realtime-radar', RtrrObservationViewSet)
-router.register(r'realtime-gauge', RtrgbservationViewSet)
-router.register(r'rainfall-events', ReportEventsViewSet)
+router.register(r'calibrated-radar', GarrObservationViewset)
+router.register(r'calibrated-gauge', GaugeObservationViewset)
+router.register(r'realtime-radar', RtrrObservationViewset)
+router.register(r'realtime-gauge', RtrgbservationViewset)
+router.register(r'rainfall-events', RainfallEventViewset)
 
 # -----------------------------------------------
-# API URLs for the Views
+# API URLs for high-level endpoints
 
 urlpatterns = [
-    # high-level routes - multiple routes-per-view represent multiple naming 
-    # conventions
+
+    # --------------------------
+    # documentation
+    
+    path('schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('docs/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('docs/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    
+    # --------------------------
+    # high-level custom routes - multiple routes-per-view represent multiple 
+    # naming conventions
+
+    # GARR
     path('v2/pixel/historic/', RainfallGarrApiView.as_view()),
     path('v2/pixel/calibrated/', RainfallGarrApiView.as_view()),    
     path('v2/radar/historic/', RainfallGarrApiView.as_view()),
@@ -31,7 +55,7 @@ urlpatterns = [
     path('v2/pixel/calibrated/<str:jobid>/', RainfallGarrApiView.as_view()),    
     path('v2/radar/historic/<str:jobid>/', RainfallGarrApiView.as_view()),
     path('v2/radar/calibrated/<str:jobid>/', RainfallGarrApiView.as_view()),
-
+    # RTRR
     path('v2/pixel/realtime/', RainfallRtrrApiView.as_view()),
     path('v2/pixel/raw/', RainfallRtrrApiView.as_view()),
     path('v2/radar/realtime/',  RainfallRtrrApiView.as_view()),
@@ -40,17 +64,22 @@ urlpatterns = [
     path('v2/pixel/raw/<str:jobid>/', RainfallRtrrApiView.as_view()),
     path('v2/radar/realtime/<str:jobid>/',  RainfallRtrrApiView.as_view()),
     path('v2/radar/raw/<str:jobid>/',  RainfallRtrrApiView.as_view()),
-
+    # GAUGE
     path('v2/gauge/historic/', RainfallGaugeApiView.as_view()),
     path('v2/gauge/calibrated/', RainfallGaugeApiView.as_view()),
     path('v2/gauge/historic/<str:jobid>/', RainfallGaugeApiView.as_view()),
     path('v2/gauge/calibrated/<str:jobid>/', RainfallGaugeApiView.as_view()),
-
+    #RTRG
     path('v2/gauge/realtime/', RainfallRtrgApiView.as_view()),
     path('v2/gauge/raw/', RainfallRtrgApiView.as_view()),
     path('v2/gauge/realtime/<str:jobid>/', RainfallRtrgApiView.as_view()),
     path('v2/gauge/raw/<str:jobid>/', RainfallRtrgApiView.as_view()),
+
+    # --------------------------
+    # custom routes (for function-based views)
+    path('v2/latest-observations/', get_latest_observation_timestamps_summary),
     
-    # low-level routes
+    # --------------------------
+    # low-level DRF-registered routes
     path('', include(router.urls))
 ]

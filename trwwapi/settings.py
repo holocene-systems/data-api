@@ -51,12 +51,16 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # 3rd party apps
+    'debug_toolbar',
     'django_rq',
     'corsheaders',
     'rest_framework',
     'rest_framework_gis',
+    'drf_spectacular',
+    'django_filters',
     'leaflet',
-    'debug_toolbar',
+    # 'storages',
+    # 'cloud_browser',
     # our apps
     'trwwapi.rainfall',
 ]
@@ -172,7 +176,7 @@ GDAL_LIBRARY_PATH = os.environ.get('GDAL_LIBRARY_PATH')
 GEOS_LIBRARY_PATH = os.environ.get('GEOS_LIBRARY_PATH')
 
 # ------------------------------------------------------------------------------
-# REST FRAMEWORK SETTINGS
+# REST FRAMEWORK + API DOCS SETTINGS
 
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
@@ -181,7 +185,20 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 20,
-    'DEFAULT_METADATA_CLASS': 'rest_framework.metadata.SimpleMetadata'
+    'DEFAULT_METADATA_CLASS': 'rest_framework.metadata.SimpleMetadata',
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend'
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema'
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': '3RWW Rainfall API',
+    'DESCRIPTION': 'Get 3RWW high-resolution rainfall data',
+    'CONTACT': {"name": "CivicMapper", "email": "3rww@civicmapper.com"},
+    # Optional: MUST contain "name", MAY contain URL
+    'LICENSE': {"name":"MIT"},
+    'VERSION': '2.0.0'
 }
 
 
@@ -200,6 +217,39 @@ RQ_QUEUES = {
 
 # RQ_API_TOKEN=os.getenv('RQ_API_TOKEN', 'test-rq-token')
 RQ_SHOW_ADMIN_LINK = True
+
+# ------------------------------------------------------------------------------
+# Object Storage
+# Access to static files stored on AWS S3 by 3rww-rainfall-pipeline and others
+
+# django-storages
+'''
+DEFAULT_FILE_STORAGE = 'storages.backends.apache_libcloud.LibCloudStorage'
+
+LIBCLOUD_PROVIDERS = {
+    'trww_rainfall_reports': {
+        'type': 'libcloud.storage.types.Provider.S3_US_STANDARD_HOST',
+        'user': os.getenv('APACHE_LIBCLOUD_ACCOUNT'),
+        'key': os.getenv('APACHE_LIBCLOUD_SECRET_KEY'),
+        'bucket': 'trww-rainfall-reports',
+        'region': 'us-east-2'
+    }
+}
+
+DEFAULT_LIBCLOUD_PROVIDER = 'trww_rainfall_reports'
+
+# django-cloud-browser
+# see documentation for Django-Cloud-Browser for explanation of environment 
+# variables: https://ryan-roemer.github.io/django-cloud-browser
+
+CLOUD_BROWSER_DATASTORE = 'ApacheLibcloud'
+CLOUD_BROWSER_APACHE_LIBCLOUD_PROVIDER = os.getenv('APACHE_LIBCLOUD_PROVIDER', "S3")
+CLOUD_BROWSER_APACHE_LIBCLOUD_ACCOUNT = os.getenv('APACHE_LIBCLOUD_ACCOUNT')
+CLOUD_BROWSER_APACHE_LIBCLOUD_SECRET_KEY = os.getenv('APACHE_LIBCLOUD_SECRET_KEY')
+
+CLOUD_BROWSER_CONTAINER_WHITELIST = ['trww-rainfall-reports']
+CLOUD_BROWSER_VIEW_DECORATOR = "django.contrib.admin.views.decorators.staff_member_required"
+'''
 
 # ------------------------------------------------------------------------------
 # LOGGING

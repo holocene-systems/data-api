@@ -1,0 +1,1416 @@
+openapi: 3.0.3
+info:
+  title: 3RWW Rainfall API
+  version: 2.0.0
+  description: Get 3RWW high-resolution rainfall data
+  termsOfService: See https://3riverswetweather.org for terms of use.
+  contact:
+    name: CivicMapper
+    email: 3rww@civicmapper.com
+  license:
+    name: MIT
+paths:
+  /rainfall/calibrated-gauge/:
+    get:
+      operationId: rainfall_calibrated_gauge_list
+      description: ''
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedGaugeObservationList'
+          description: ''
+  /rainfall/calibrated-gauge/{timestamp}/:
+    get:
+      operationId: rainfall_calibrated_gauge_retrieve
+      description: ''
+      parameters:
+      - in: path
+        name: timestamp
+        schema:
+          type: string
+          format: date-time
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GaugeObservation'
+          description: ''
+  /rainfall/calibrated-radar/:
+    get:
+      operationId: rainfall_calibrated_radar_list
+      description: ''
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedGarrObservationList'
+          description: ''
+  /rainfall/calibrated-radar/{timestamp}/:
+    get:
+      operationId: rainfall_calibrated_radar_retrieve
+      description: ''
+      parameters:
+      - in: path
+        name: timestamp
+        schema:
+          type: string
+          format: date-time
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GarrObservation'
+          description: ''
+  /rainfall/rainfall-events/:
+    get:
+      operationId: rainfall_rainfall_events_list
+      description: ''
+      parameters:
+      - in: query
+        name: end_dt
+        schema:
+          type: string
+          format: date-time
+        description: end_dt
+      - in: query
+        name: event_after
+        schema:
+          type: string
+          format: date-time
+        description: event_after
+      - in: query
+        name: event_before
+        schema:
+          type: string
+          format: date-time
+        description: event_before
+      - in: query
+        name: event_label
+        schema:
+          type: string
+        description: event_label
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      - in: query
+        name: start_dt
+        schema:
+          type: string
+          format: date-time
+        description: start_dt
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReportEventList'
+          description: ''
+  /rainfall/rainfall-events/{event_label}/:
+    get:
+      operationId: rainfall_rainfall_events_retrieve
+      description: ''
+      parameters:
+      - in: path
+        name: event_label
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportEvent'
+          description: ''
+  /rainfall/realtime-gauge/:
+    get:
+      operationId: rainfall_realtime_gauge_list
+      description: ''
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRtrgObservationList'
+          description: ''
+  /rainfall/realtime-gauge/{timestamp}/:
+    get:
+      operationId: rainfall_realtime_gauge_retrieve
+      description: ''
+      parameters:
+      - in: path
+        name: timestamp
+        schema:
+          type: string
+          format: date-time
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RtrgObservation'
+          description: ''
+  /rainfall/realtime-radar/:
+    get:
+      operationId: rainfall_realtime_radar_list
+      description: ''
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRtrrObservationList'
+          description: ''
+  /rainfall/realtime-radar/{timestamp}/:
+    get:
+      operationId: rainfall_realtime_radar_retrieve
+      description: ''
+      parameters:
+      - in: path
+        name: timestamp
+        schema:
+          type: string
+          format: date-time
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RtrrObservation'
+          description: ''
+  /rainfall/schema/:
+    get:
+      operationId: rainfall_schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /rainfall/v2/gauge/calibrated/:
+    get:
+      operationId: rainfall_v2_gauge_calibrated_retrieve
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_gauge_calibrated_create
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/gauge/calibrated/{jobid}/:
+    get:
+      operationId: rainfall_v2_gauge_calibrated_retrieve_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_gauge_calibrated_create_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/gauge/historic/:
+    get:
+      operationId: rainfall_v2_gauge_historic_retrieve
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_gauge_historic_create
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/gauge/historic/{jobid}/:
+    get:
+      operationId: rainfall_v2_gauge_historic_retrieve_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_gauge_historic_create_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/gauge/raw/:
+    get:
+      operationId: rainfall_v2_gauge_raw_retrieve
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_gauge_raw_create
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/gauge/raw/{jobid}/:
+    get:
+      operationId: rainfall_v2_gauge_raw_retrieve_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_gauge_raw_create_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/gauge/realtime/:
+    get:
+      operationId: rainfall_v2_gauge_realtime_retrieve
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_gauge_realtime_create
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/gauge/realtime/{jobid}/:
+    get:
+      operationId: rainfall_v2_gauge_realtime_retrieve_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_gauge_realtime_create_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/latest-observations/:
+    get:
+      operationId: rainfall_v2_latest_observations_retrieve
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/pixel/calibrated/:
+    get:
+      operationId: rainfall_v2_pixel_calibrated_retrieve
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_pixel_calibrated_create
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/pixel/calibrated/{jobid}/:
+    get:
+      operationId: rainfall_v2_pixel_calibrated_retrieve_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_pixel_calibrated_create_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/pixel/historic/:
+    get:
+      operationId: rainfall_v2_pixel_historic_retrieve
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_pixel_historic_create
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/pixel/historic/{jobid}/:
+    get:
+      operationId: rainfall_v2_pixel_historic_retrieve_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_pixel_historic_create_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/pixel/raw/:
+    get:
+      operationId: rainfall_v2_pixel_raw_retrieve
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_pixel_raw_create
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/pixel/raw/{jobid}/:
+    get:
+      operationId: rainfall_v2_pixel_raw_retrieve_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_pixel_raw_create_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/pixel/realtime/:
+    get:
+      operationId: rainfall_v2_pixel_realtime_retrieve
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_pixel_realtime_create
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/pixel/realtime/{jobid}/:
+    get:
+      operationId: rainfall_v2_pixel_realtime_retrieve_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_pixel_realtime_create_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/radar/calibrated/:
+    get:
+      operationId: rainfall_v2_radar_calibrated_retrieve
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_radar_calibrated_create
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/radar/calibrated/{jobid}/:
+    get:
+      operationId: rainfall_v2_radar_calibrated_retrieve_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_radar_calibrated_create_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/radar/historic/:
+    get:
+      operationId: rainfall_v2_radar_historic_retrieve
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_radar_historic_create
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/radar/historic/{jobid}/:
+    get:
+      operationId: rainfall_v2_radar_historic_retrieve_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_radar_historic_create_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/radar/raw/:
+    get:
+      operationId: rainfall_v2_radar_raw_retrieve
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_radar_raw_create
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/radar/raw/{jobid}/:
+    get:
+      operationId: rainfall_v2_radar_raw_retrieve_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_radar_raw_create_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/radar/realtime/:
+    get:
+      operationId: rainfall_v2_radar_realtime_retrieve
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_radar_realtime_create
+      description: ''
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /rainfall/v2/radar/realtime/{jobid}/:
+    get:
+      operationId: rainfall_v2_radar_realtime_retrieve_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: rainfall_v2_radar_realtime_create_2
+      description: ''
+      parameters:
+      - in: path
+        name: jobid
+        schema:
+          type: string
+        required: true
+      tags:
+      - rainfall
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+components:
+  schemas:
+    GarrObservation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: object
+          additionalProperties: {}
+      required:
+      - data
+      - id
+      - timestamp
+    GaugeObservation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: object
+          additionalProperties: {}
+      required:
+      - data
+      - id
+      - timestamp
+    PaginatedGarrObservationList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/GarrObservation'
+    PaginatedGaugeObservationList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/GaugeObservation'
+    PaginatedReportEventList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportEvent'
+    PaginatedRtrgObservationList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/RtrgObservation'
+    PaginatedRtrrObservationList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/RtrrObservation'
+    ReportEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        created:
+          type: string
+          format: date-time
+          readOnly: true
+        modified:
+          type: string
+          format: date-time
+        report_label:
+          type: string
+          maxLength: 255
+        event_label:
+          type: string
+          maxLength: 255
+        start_dt:
+          type: string
+          format: date-time
+        end_dt:
+          type: string
+          format: date-time
+      required:
+      - created
+      - end_dt
+      - event_label
+      - id
+      - report_label
+      - start_dt
+    RtrgObservation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: object
+          additionalProperties: {}
+      required:
+      - data
+      - id
+      - timestamp
+    RtrrObservation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: object
+          additionalProperties: {}
+      required:
+      - data
+      - id
+      - timestamp
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: Session
