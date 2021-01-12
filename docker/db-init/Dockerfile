@@ -10,10 +10,17 @@ RUN apt-get update && \
 	gdal-bin \
 	git
 
-COPY requirements.txt /code/
+RUN pip install pipenv==2018.11.26
+# COPY requirements.txt /code/
+COPY Pipfile /code/
+COPY Pipfile.lock /code/
 WORKDIR /code/
+RUN pipenv lock -r > requirements.txt
 RUN pip install -r requirements.txt
+# RUN pipenv install --deploy
 
 COPY . /code/
 
 CMD [ "./docker/db-init/wait-for-postgres.sh", "db", "./docker/db-init/startup.sh" ]
+# CMD [ "./docker/db-init/wait-for-postgres.sh", "db", "python3", "manage.py", "migrate", "--no-input"]
+# CMD [ "./docker/db-init/wait-for-postgres.sh", "db", "startup.sh" ]

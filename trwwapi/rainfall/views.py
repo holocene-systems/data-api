@@ -1,61 +1,39 @@
 # from django.contrib.auth.models import User, Group
-
-from datetime import datetime, timedelta
 from django.utils.safestring import mark_safe
-from django.utils.timezone import localtime
-from django.db.models import Q
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
-from django.shortcuts import redirect
-from rest_framework.views import APIView
+from django_filters import filters
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.generics import GenericAPIView
 from rest_framework import viewsets, permissions, routers
 from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from marshmallow import ValidationError
-from time import sleep
-from django_rq import job, get_queue
+from django_filters.rest_framework import FilterSet, DjangoFilterBackend
 
-from ..utils import _parse_request
+from .api_civicmapper.config import TZI
+
 from .serializers import (
     GarrObservationSerializer, 
     GaugeObservationSerializer, 
     RtrrObservationSerializer, 
     RtrgObservationSerializer,
-    ReportEventSerializer,
-    RequestSchema,
-    ResponseSchema,
-    parse_and_validate_args
+    ReportEventSerializer
 )
-from .selectors import handle_request_for
+from .selectors import (
+    handle_request_for,
+    get_latest_garrobservation,
+    get_latest_gaugeobservation,
+    get_latest_rainfallevent,
+    get_latest_rtrgobservation,
+    get_latest_rtrrobservation
+)
 from .models import (
     GarrObservation, 
     GaugeObservation, 
     RtrrObservation, 
     RtrgObservation,
-    ReportEvent, 
+    RainfallEvent, 
     Pixel, 
-    Gauge, 
-    MODELNAME_TO_GEOMODEL_LOOKUP
-)
-from .api_civicmapper.config import (
-    DELIMITER, 
-    INTERVAL_15MIN, 
-    INTERVAL_DAILY, 
-    INTERVAL_HOURLY, 
-    INTERVAL_MONTHLY,
-    INTERVAL_SUM,
-    TZ,
-    F_CSV
-)
-from .api_civicmapper.core import (
-    parse_sensor_ids, 
-    parse_sensor_ids, 
-    parse_datetime_args,
-    aggregate_results_by_interval,
-    apply_zerofill,
-    format_results
+    Gauge
 )
 
 
@@ -84,8 +62,7 @@ class ApiDefaultRouter(routers.DefaultRouter):
 # HIGH-LEVEL API VIEWS
 # these are the views that do the work for us
 
-
-class RainfallGaugeApiView(APIView):
+class RainfallGaugeApiView(GenericAPIView):
 
     def get(self, request, *args, **kwargs):
         return handle_request_for(GaugeObservation, request, *args, **kwargs)
@@ -94,7 +71,7 @@ class RainfallGaugeApiView(APIView):
         return handle_request_for(GaugeObservation, request, *args, **kwargs)
 
 
-class RainfallGarrApiView(APIView):
+class RainfallGarrApiView(GenericAPIView):
 
     def get(self, request, *args, **kwargs):
         return handle_request_for(GarrObservation, request, *args, **kwargs)
@@ -103,7 +80,7 @@ class RainfallGarrApiView(APIView):
         return handle_request_for(GarrObservation, request, *args, **kwargs)
 
 
-class RainfallRtrrApiView(APIView):
+class RainfallRtrrApiView(GenericAPIView):
 
     def get(self, request, *args, **kwargs):
         return handle_request_for(RtrrObservation, request, *args, **kwargs)
@@ -112,7 +89,7 @@ class RainfallRtrrApiView(APIView):
         return handle_request_for(RtrrObservation, request, *args, **kwargs)
 
 
-class RainfallRtrgApiView(APIView):
+class RainfallRtrgApiView(GenericAPIView):
 
     def get(self, request, *args, **kwargs):
         return handle_request_for(RtrgObservation, request, *args, **kwargs)
@@ -126,35 +103,65 @@ class RainfallRtrgApiView(APIView):
 # These return paginated data from the tables in the database as-is.
 # They show up in the django-rest-framework's explorable API pages.
 
-class ReportEventsViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = ReportEvent.objects.all()
+class RainfallEventFilter(FilterSet):
+    event_after = filters.DateFilter(field_name="start_dt", lookup_expr="gte")
+    event_before = filters.DateFilter(field_name="end_dt", lookup_expr="lte")
+    
+    class Meta:
+        model = RainfallEvent
+        fields = ['event_label', 'start_dt', 'end_dt']
+
+class RainfallEventViewset(viewsets.ReadOnlyModelViewSet):
+    queryset = RainfallEvent.objects.all()
     serializer_class = ReportEventSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     lookup_field = 'event_label'
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = RainfallEventFilter
 
-
-class GarrObservationViewSet(viewsets.ReadOnlyModelViewSet):
+class GarrObservationViewset(viewsets.ReadOnlyModelViewSet):
     queryset = GarrObservation.objects.all()
     serializer_class  = GarrObservationSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     lookup_field = 'timestamp'
 
-
-class GaugeObservationViewSet(viewsets.ReadOnlyModelViewSet):
+class GaugeObservationViewset(viewsets.ReadOnlyModelViewSet):
     queryset = GaugeObservation.objects.all()
     serializer_class  = GaugeObservationSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     lookup_field='timestamp'
 
-
-class RtrrObservationViewSet(viewsets.ReadOnlyModelViewSet):
+class RtrrObservationViewset(viewsets.ReadOnlyModelViewSet):
     queryset = RtrrObservation.objects.all()
     serializer_class  = RtrrObservationSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     lookup_field='timestamp'
 
-class RtrgbservationViewSet(viewsets.ReadOnlyModelViewSet):
+class RtrgbservationViewset(viewsets.ReadOnlyModelViewSet):
     queryset = RtrgObservation.objects.all()
     serializer_class  = RtrgObservationSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     lookup_field='timestamp'
+
+# -------------------------------------------------------------------
+# HELPER VIEWS
+# These provide helpers for specific use cases
+
+@api_view(['GET'])
+def get_latest_observation_timestamps_summary(request):
+    
+    raw_summary = {
+        "calibrated-radar": get_latest_garrobservation(),
+        "calibrated-gauge": get_latest_gaugeobservation(),
+        "realtime-radar": get_latest_rtrrobservation(),
+        "realtime-gauge": get_latest_rtrgobservation(),
+        "rainfall-events": get_latest_rainfallevent(),
+    }
+
+    summary = {
+        k: v.timestamp.astimezone(TZI).isoformat() if v is not None else None
+        for k, v in 
+        raw_summary.items()
+    }
+
+    return Response(summary)
