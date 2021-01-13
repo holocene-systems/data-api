@@ -59,6 +59,15 @@ class RainfallEvent(PandasModelMixin, TimestampedMixin):
     end_dt = models.DateTimeField()
     # TODO: add a report_document relate field for access to a report model w/ the PDFs
 
+    @property
+    def duration(self):
+        duration = self.end_dt - self.start_dt
+        seconds = duration.total_seconds()
+        hours = seconds // 3600
+        # minutes = (seconds % 3600) // 60
+        #seconds = seconds % 60
+        return hours
+
     class Meta:
         ordering = ['-end_dt']
 
