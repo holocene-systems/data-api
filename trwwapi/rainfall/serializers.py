@@ -58,10 +58,10 @@ class RtrgObservationSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class ReportEventSerializer(serializers.ModelSerializer):
+class RainfallEventSerializer(serializers.ModelSerializer):
     class Meta:
         model = RainfallEvent
-        fields = '__all__' 
+        fields = ("start_dt", "end_dt", "report_label", "event_label", "duration")
 
 
 class PixelSerializer(GeoFeatureModelSerializer): 
