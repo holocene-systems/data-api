@@ -49,6 +49,7 @@ def get_rainfall_data(postgres_table_model, raw_args=None):
     # print("request made to", postgres_table_model, raw_args)
 
     messages = DebugMessages(debug=True)
+    results = []
 
     # handle missing arguments here:
     # Rollup = Sum
@@ -106,6 +107,7 @@ def get_rainfall_data(postgres_table_model, raw_args=None):
 
     # **validate** all request arguments using a marshmallow schema
     # this will convert datetimes to the proper format, check formatting, etc.
+    args = {}
     try:
         # print("parse_and_validate_args")
         args = parse_and_validate_args(raw_args)
@@ -166,6 +168,7 @@ def get_rainfall_data(postgres_table_model, raw_args=None):
     sensor_ids = []
     if args['sensor_ids']:
         sensor_ids = [str(i) for i in args['sensor_ids'].split(DELIMITER)]
+
 
     # use parsed args and datetime list to query the database
     try:
@@ -331,8 +334,11 @@ def handle_request_for(rainfall_model, request, *args, **kwargs):
 # SELECTORS
 
 def _get_latest(model_class, timestamp_field="timestamp"):
+    """gets the latest record from the model, by default using the 
+    timestamp_field arg. Returns a single instance of model_class.
+    """
     fields = [f.name for f in model_class._meta.fields]
-    print(model_class)
+    # print(model_class)
     
     r = None
     try:
@@ -342,7 +348,6 @@ def _get_latest(model_class, timestamp_field="timestamp"):
             r = model_class.objects\
                 .annotate(timestamp=models.ExpressionWrapper(models.F(timestamp_field), output_field=models.DateTimeField()))\
                 .latest(timestamp_field)
-        print(r)
         return r
     except (model_class.DoesNotExist, AttributeError):
         return None

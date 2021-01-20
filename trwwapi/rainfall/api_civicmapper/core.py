@@ -51,13 +51,13 @@ DDB_TABLE_LOOKUP = {
     RAINGAUGE_RESOURCE_PATH: TableGauge15,
     PIXEL_RESOURCE_PATH: TableGARR15,
     RTRR_RESOURCE_PATH: TableRTRR15
-}
+} # DEPRECATED
 
 REF_GEOJSON_LOOKUP = {
     RAINGAUGE_RESOURCE_PATH: DATA_DIR / 'gauges.geojson',
     PIXEL_RESOURCE_PATH: DATA_DIR / 'pixels.geojson',
     RTRR_RESOURCE_PATH: DATA_DIR / 'pixels.geojson'
-}
+} # DEPRECTATED
 
 RAINFALL_BASE_MODEL_REF = RainfallObservation()
 
@@ -68,7 +68,8 @@ RAINFALL_BASE_MODEL_REF = RainfallObservation()
 # HELPERS -----------------------------------------------------------
 
 def parse_args_to_dict(body, list_delimiter=DELIMITER, replacement_delimiter=DELIMITER):
-    """Use urllib query string parser to turn the body or querty string of the request into a
+    """DEPRECATED 
+    Use urllib query string parser to turn the body or querty string of the request into a
     dictionary, after handling any potentially non-standard delimiters
     """
     cleaned_body = body.replace(list_delimiter, replacement_delimiter)
@@ -76,7 +77,9 @@ def parse_args_to_dict(body, list_delimiter=DELIMITER, replacement_delimiter=DEL
     return {k: v[0] for k, v in parsed_body.items()}
 
 def parse_apigw_event(resource, request_args):
-    """parse the resource path and request args (which may be in body or query string) from the request into objects
+    """DEPRECATED
+    
+    parse the resource path and request args (which may be in body or query string) from the request into objects
     
     :param resource: path of the api resource; resource key in the event json
     :type resource: str
@@ -254,7 +257,8 @@ def parse_datetime_args(start_dt, end_dt, interval=None, delta=15):
 
 @retry(stop=(stop_after_attempt(5) | stop_after_delay(60)), wait=wait_random_exponential(multiplier=2, max=30), reraise=True)
 def query_ddb_exact(pynamodb_table, sensor_ids, all_datetimes):
-    """query the *exact records* needed from the db
+    """DEPRECATED
+    query the *exact records* needed from the db
     
     :param pynamodb_table: [description]
     :type pynamodb_table: [type]
@@ -289,48 +293,85 @@ def query_pgdb(postgres_table_model, sensor_ids, all_datetimes, timezone=TZ):
 
     tablename = postgres_table_model.objects.model._meta.db_table
     print("querying: {0}".format(tablename))
-    print(all_datetimes[0], all_datetimes[-1])
-    # query the database:
-    queryset = postgres_table_model.objects.filter(
-        Q(timestamp__gt=all_datetimes[0]),
-        Q(timestamp__lte=all_datetimes[-1])
+
+    query = """
+        select 
+            q1.id, 
+            q1.timestamp, 
+            (q1.data->>'key')::text as sensor, 
+            (q1.data->'value'->>0)::float as val, 
+            (q1.data->'value'->>1)::text 
+        as src from (
+            select 
+                id, 
+                timestamp, 
+                row_to_json(jsonb_each(data))::jsonb 
+            as data from %s rg 
+        ) q1 
+        where (timestamp >= %s and timestamp <= %s) order by timestamp 
     )
+    """
+    query_params = [
+        tablename,
+        all_datetimes[0],
+        all_datetimes[-1],
+    ]
+
+    # if sensor ids are spec'd we wrap the query above with an additional
+    # where clause, and add the sensor ids a parameter
+    if sensor_ids:
+        query = "select * from ({0}) q2 where sensor in %s".format(query)
+        query_params.append(tuple(sensor_ids))
+
+    # query the database:
+    queryset = postgres_table_model.objects\
+        .raw(query, query_params)\
+        .filter()
+    # queryset = postgres_table_model.objects.filter(
+    #     Q(timestamp__gt=all_datetimes[0]),
+    #     Q(timestamp__lte=all_datetimes[-1])
+    # )
+
     # read results into a dataframe:
     df = postgres_table_model.as_dataframe(queryset)
+    
     # the output will have timezone-aware timestamps in UTC; convert
-    # to local timezone
-    df['timestamp'] = df['timestamp'].dt.tz_convert(timezone)
+    # to local timezone in iso-format
+    df['timestamp'] = df['timestamp'].dt.tz_convert(timezone)\
+        .apply(lambda v: v.isoformat())
 
     # print(list(df['timestamp']))
 
+    # convert the dataframe to a list of dictionaries
     rows = df.to_dict(orient='records')
 
-    # if sensor ids are spec'd we filter the rest out of the rows
-    if sensor_ids:
-        for row in rows:
-            for sensor_id, observation in row['data'].items():
-                row['data'] = dict((k, row['data'][k]) for k in sensor_ids if k in row['data'])
+    # # if sensor ids are spec'd we filter the rest out of the rows
+    # if sensor_ids:
+    #     for row in rows:
+    #         for sensor_id, observation in row['data'].items():
+    #             row['data'] = dict((k, row['data'][k]) for k in sensor_ids if k in row['data'])
     
-    # then we create a new table where every row represents a single observation 
-    # for a single sensor; datetime objects are converted to ISO 8061 formatted 
-    # strings here.
-    newrows = []
-    for row in rows:
-        for sensor_id, observation in row['data'].items():
-            newrows.append(dict(ts=row['timestamp'].isoformat(), id=sensor_id, val=observation[0], src=observation[1]))
-    # print(newrows)
-    print
-    return newrows
+    # # then we create a new table where every row represents a single observation 
+    # # for a single sensor; datetime objects are converted to ISO 8061 formatted 
+    # # strings here.
+    # newrows = []
+    # for row in rows:
+    #     for sensor_id, observation in row['data'].items():
+    #         newrows.append(dict(ts=row['timestamp'].isoformat(), id=sensor_id, val=observation[0], src=observation[1]))
+    # # print(newrows)
+    #return newrows
+
+    return rows
 
 def _rollup_date(dts, interval=None):
     """format date/time string based on interval spec'd for summation
 
-    for Daily, it returns just the date. no time or timezeon
+    For Daily, it returns just the date. No time or timezeone.
 
     For Hourly, it returns an ISO-8061 datetime range. This provides previously
-    missing clarity around 
-
-
+    missing clarity around whether the rainfall amount shown was for the 
+    period starting at the returned datetime or the period preceeding it (the
+    latter being the correct but approach for datetimes but not dates.)
     """
 
     if interval == INTERVAL_DAILY:
