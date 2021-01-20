@@ -306,7 +306,7 @@ def query_pgdb(postgres_table_model, sensor_ids, all_datetimes, timezone=TZ):
                 id, 
                 timestamp, 
                 row_to_json(jsonb_each(data))::jsonb 
-            as data from %s rg
+            as data from %s rg 
         ) q1 
         where (timestamp >= %s and timestamp <= %s) order by timestamp 
     )
