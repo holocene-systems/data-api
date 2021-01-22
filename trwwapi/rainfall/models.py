@@ -7,6 +7,24 @@ from .mixins import PandasModelMixin, TimestampedMixin
 
 
 class RainfallObservationMeta(PandasModelMixin):
+    """Base abstract model for all rainfall observations ORM models.
+    Each record is a point in time. Observations by sensor are stored in JSON 
+    'data' field, where keys are the sensor ids, and values are an array; 
+    the first item in the array is the rainfall amount, the second is any 
+    metadata about the recording. 
+    
+    An single record as a Python dictionary or JSON object then looks like this:
+
+        {
+            "timestamp": 2020-11-30T07:00:00+00:00
+            "data": {
+                "123456": [0.25, "G-4"],
+                "234561": [0.17, "G-4"],
+                ...
+            }
+        }
+
+    """
 
     timestamp = models.DateTimeField(db_index=True)
     data = JSONField()
@@ -51,6 +69,7 @@ class RainfallReport(TimestampedMixin):
     document = models.FileField()
     # events = models.ManyToManyField('RainfallEvent')
 
+
 class RainfallEvent(PandasModelMixin, TimestampedMixin):
 
     report_label = models.CharField(max_length=255)
@@ -91,6 +110,7 @@ class Pixel(PandasModelMixin):
     def __str__(self):
         return self.pixel_id
 
+
 class Gauge(PandasModelMixin):
 
     web_id = models.IntegerField(null=True)
@@ -106,6 +126,9 @@ class Gauge(PandasModelMixin):
         return "{0} - {1}".format(self.web_id, self.name)
     
 
+# MODELNAME_TO_GEOMODEL_LOOKUP helps us dynamically select the correct geodata 
+# for an observation model, since we don't enforce a relationship between the 
+# observation models and sensor layer models
 MODELNAME_TO_GEOMODEL_LOOKUP = {
     GarrObservation._meta.object_name: Pixel,
     RtrrObservation._meta.object_name: Pixel,

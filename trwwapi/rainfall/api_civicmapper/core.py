@@ -44,6 +44,8 @@ from .config import (
     MIN_INTERVAL
 )
 
+from ..serializers import RainfallQueryResultSerializer
+
 
 # CONSTANTS ---------------------------------------------------------
 
@@ -287,32 +289,34 @@ def query_ddb_exact(pynamodb_table, sensor_ids, all_datetimes):
     print("returned", len(records), "records")
     return records
 
-# @retry(stop=(stop_after_attempt(5) | stop_after_delay(60)), wait=wait_random_exponential(multiplier=2, max=30), reraise=True)
-@Timer(name="query_pgdb", text="{name}: {:.4f}s")
-def query_pgdb(postgres_table_model, sensor_ids, all_datetimes, timezone=TZ):
+# ------------------------------------------------------------------------------
+# POSTGRES QUERY FUNCTION
 
-    tablename = postgres_table_model.objects.model._meta.db_table
-    print("querying: {0}".format(tablename))
-
+def _build_query(tablename, all_datetimes, sensor_ids=None):
+    """builds the query using the provided params
+    """
+    
     query = """
         select 
-            q1.id, 
-            q1.timestamp, 
-            (q1.data->>'key')::text as sensor, 
-            (q1.data->'value'->>0)::float as val, 
-            (q1.data->'value'->>1)::text 
-        as src from (
+            q1.timestamp as ts,
+            (q1.data->>'key')::text as id,
+            (q1.data->'value'->>0)::float as val,
+            (q1.data->'value'->>1)::text as src 
+        from (
             select 
                 id, 
                 timestamp, 
                 row_to_json(jsonb_each(data))::jsonb 
-            as data from %s rg 
-        ) q1 
-        where (timestamp >= %s and timestamp <= %s) order by timestamp 
-    )
-    """
+            as data from {0} rg 
+        ) q1
+        where (timestamp >= %s and timestamp <= %s) order by timestamp
+    """.format(tablename)
+
+    # Note that the use of a raw SQL query above means we later on will use a 
+    # custom serializer instead of the model's built-in, default serializer    
+
+    # minimally, we need dates/times
     query_params = [
-        tablename,
         all_datetimes[0],
         all_datetimes[-1],
     ]
@@ -320,47 +324,54 @@ def query_pgdb(postgres_table_model, sensor_ids, all_datetimes, timezone=TZ):
     # if sensor ids are spec'd we wrap the query above with an additional
     # where clause, and add the sensor ids a parameter
     if sensor_ids:
-        query = "select * from ({0}) q2 where sensor in %s".format(query)
+        query = "select * from ({0}) q2 where id in %s".format(query)
         query_params.append(tuple(sensor_ids))
+    
+    return query, query_params
 
-    # query the database:
-    # queryset = postgres_table_model.objects.filter(
-    #     Q(timestamp__gt=all_datetimes[0]),
-    #     Q(timestamp__lte=all_datetimes[-1])
-    # )    
-    queryset = postgres_table_model.objects\
-        .raw(query, query_params)
+@Timer(name="query_pgdb__query_pgdb", text="{name}: {:.4f}s")
+def _query_pgdb(postgres_table_model, query, query_params):
+    return postgres_table_model.objects.raw(query, query_params)
+
+@Timer(name="query_pgdb__postprocess_pg_response", text="{name}: {:.4f}s")
+def _postprocess_pg_response(postgres_table_model, queryset, timezone):
 
     # read results into a dataframe:
-    df = postgres_table_model.as_dataframe(queryset)
-    
+    df = postgres_table_model.as_dataframe_using_drf_serializer(
+        queryset=queryset,
+        drf_serializer=RainfallQueryResultSerializer
+    )
+
     # the output will have timezone-aware timestamps in UTC; convert
     # to local timezone in iso-format
-    df['timestamp'] = df['timestamp'].dt.tz_convert(timezone)\
+    df['ts'] = pd.to_datetime(df['ts'])\
+        .dt\
+        .tz_convert(timezone)\
         .apply(lambda v: v.isoformat())
-
-    # print(list(df['timestamp']))
-
+        
     # convert the dataframe to a list of dictionaries
     rows = df.to_dict(orient='records')
 
-    # # if sensor ids are spec'd we filter the rest out of the rows
-    # if sensor_ids:
-    #     for row in rows:
-    #         for sensor_id, observation in row['data'].items():
-    #             row['data'] = dict((k, row['data'][k]) for k in sensor_ids if k in row['data'])
-    
-    # # then we create a new table where every row represents a single observation 
-    # # for a single sensor; datetime objects are converted to ISO 8061 formatted 
-    # # strings here.
-    # newrows = []
-    # for row in rows:
-    #     for sensor_id, observation in row['data'].items():
-    #         newrows.append(dict(ts=row['timestamp'].isoformat(), id=sensor_id, val=observation[0], src=observation[1]))
-    # # print(newrows)
-    #return newrows
 
     return rows
+
+# @retry(stop=(stop_after_attempt(5) | stop_after_delay(60)), wait=wait_random_exponential(multiplier=2, max=30), reraise=True)
+@Timer(name="query_pgdb", text="{name}: {:.4f}s")
+def query_pgdb(postgres_table_model, sensor_ids, all_datetimes, timezone=TZ):
+
+    tablename = postgres_table_model.objects.model._meta.db_table
+    print("querying: {0}".format(tablename))
+
+    # build the query using the provided params
+    query, query_params = _build_query(tablename, all_datetimes, sensor_ids)
+    # query the db
+    queryset = _query_pgdb(postgres_table_model, query, query_params)
+    # post-process the result
+    rows = _postprocess_pg_response(postgres_table_model, queryset, timezone)
+
+    return rows
+    
+
 
 def _rollup_date(dts, interval=None):
     """format date/time string based on interval spec'd for summation

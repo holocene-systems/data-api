@@ -2,6 +2,7 @@ import json
 from django.conf import settings
 from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer 
+#from dateutil.parser import parse
 
 from marshmallow import (
     Schema, 
@@ -33,6 +34,19 @@ from .api_civicmapper.utils import datetime_encoder, dt_parser
 
 from .models import GarrObservation, GaugeObservation, RtrrObservation, RtrgObservation, RainfallEvent, Pixel, Gauge
 
+from rest_framework import serializers
+
+class RainfallQueryResultSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    ts = serializers.DateTimeField()
+    val = serializers.FloatField(required=False)
+    src = serializers.CharField(required=False)
+
+    # def to_representation(self, instance):
+    #     """Convert `ts` to an ISO-formatted, timezone aware datetime string."""
+    #     ret = super().to_representation(instance)
+    #     ret['ts'] = parse(ret['ts']).astimezone(TZI).isoformat()
+    #     return ret
 
 class GarrObservationSerializer(serializers.ModelSerializer):
     class Meta:

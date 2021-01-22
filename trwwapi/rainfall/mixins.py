@@ -3,12 +3,13 @@
 generic model mixins for the django-orm
 
 """
-
+import json
 import pandas as pd
 import geopandas as gpd
 from django.contrib.gis.db import models
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 from django.core import serializers
+from rest_framework import serializers as drf_serializers
 from django.utils import timezone
 
 
@@ -69,15 +70,26 @@ class PandasModelMixin(models.Model):
         return df
 
     @classmethod
-    def as_dataframe_using_drf_serializer(cls, queryset=None, drf_serializer=None, field_list=None, as_gdf=False):
-        from rest_framework import serializers
+    def as_dataframe_using_drf_serializer(
+        cls, 
+        queryset=None, 
+        drf_serializer=None, 
+        field_list=None, 
+        as_gdf=False
+    ):
+        """Use DRF serializers instead of Djangos. Can use a custom serializer
+        for custom-shaped data (e.g., from annotated or raw django querysets),
+        otherwise serializes based on the model class represented in the 
+        queryset.
 
+        `as_gdf`=True will return a geodataframe instead of vanilla dataframe
+        """
 
         if queryset is None:
             queryset = cls.objects.all()
 
         if drf_serializer is None:
-            class CustomModelSerializer(serializers.ModelSerializer):
+            class CustomModelSerializer(drf_serializers.ModelSerializer):
                 class Meta:
                     model = cls
                     fields = field_list or '__all__'
@@ -90,9 +102,9 @@ class PandasModelMixin(models.Model):
         columns = drf_serializer().get_fields().keys()
 
         df = pd.DataFrame(data, columns=columns)
+        
         if as_gdf:
-            df = gpd.GeoDataFrame(df)
-
+            df = gpd.GeoDataFrame(df, columns=columns)
         return df
 
     @classmethod
