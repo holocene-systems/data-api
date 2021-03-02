@@ -334,7 +334,7 @@ def _query_pgdb(postgres_table_model, query, query_params):
     return postgres_table_model.objects.raw(query, query_params)
 
 @Timer(name="query_pgdb__postprocess_pg_response", text="{name}: {:.4f}s")
-def _postprocess_pg_response(postgres_table_model, queryset, timezone):
+def _postprocess_pg_response(postgres_table_model, queryset, timezone=TZ):
 
     # read results into a dataframe:
     df = postgres_table_model.as_dataframe_using_drf_serializer(
@@ -344,7 +344,11 @@ def _postprocess_pg_response(postgres_table_model, queryset, timezone):
 
     # the output will have timezone-aware timestamps in UTC; convert
     # to local timezone in iso-format
-    df['ts'] = pd.to_datetime(df['ts'])\
+
+    # TODO: handle error "Can only use .dt accessor with datetimelike values".
+    # It's unclear why we would get anything else here.
+
+    df['ts'] = pd.to_datetime(df['ts'], errors='coerce')\
         .dt\
         .tz_convert(timezone)\
         .apply(lambda v: v.isoformat())
@@ -370,7 +374,6 @@ def query_pgdb(postgres_table_model, sensor_ids, all_datetimes, timezone=TZ):
     rows = _postprocess_pg_response(postgres_table_model, queryset, timezone)
 
     return rows
-    
 
 
 def _rollup_date(dts, interval=None):
