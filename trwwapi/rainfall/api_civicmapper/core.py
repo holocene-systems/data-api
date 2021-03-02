@@ -336,28 +336,35 @@ def _query_pgdb(postgres_table_model, query, query_params):
 @Timer(name="query_pgdb__postprocess_pg_response", text="{name}: {:.4f}s")
 def _postprocess_pg_response(postgres_table_model, queryset, timezone=TZ):
 
-    # read results into a dataframe:
-    df = postgres_table_model.as_dataframe_using_drf_serializer(
-        queryset=queryset,
-        drf_serializer=RainfallQueryResultSerializer
-    )
+    # if len(DataFrame.index) > 0:
+    if len(queryset) > 0:
+        # read results into a dataframe:
+        df = postgres_table_model.as_dataframe_using_drf_serializer(
+            queryset=queryset,
+            drf_serializer=RainfallQueryResultSerializer
+        )
 
-    # the output will have timezone-aware timestamps in UTC; convert
-    # to local timezone in iso-format
+        # the output will have timezone-aware timestamps in UTC; convert
+        # to local timezone in iso-format
 
-    # TODO: handle error "Can only use .dt accessor with datetimelike values".
-    # It's unclear why we would get anything else here.
-
-    df['ts'] = pd.to_datetime(df['ts'], errors='coerce')\
-        .dt\
-        .tz_convert(timezone)\
-        .apply(lambda v: v.isoformat())
+        # TODO: handle error "Can only use .dt accessor with datetimelike values".
+        # It's unclear why we would get anything else here.
+        # TODO: handle error "Cannot convert tz-naive timestamps, use tz_localize 
+        # to localize" (seems to only show up when df is empty)
         
-    # convert the dataframe to a list of dictionaries
-    rows = df.to_dict(orient='records')
+        print(df['ts'])
+        df['ts'] = pd.to_datetime(df['ts'], errors='coerce')\
+            .dt\
+            .tz_convert(timezone)\
+            .apply(lambda v: v.isoformat())
+            
+        # convert the dataframe to a list of dictionaries
+        rows = df.to_dict(orient='records')
 
-
-    return rows
+        return rows
+        
+    else:
+        return []
 
 # @retry(stop=(stop_after_attempt(5) | stop_after_delay(60)), wait=wait_random_exponential(multiplier=2, max=30), reraise=True)
 @Timer(name="query_pgdb", text="{name}: {:.4f}s")
