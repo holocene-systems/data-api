@@ -19,7 +19,13 @@ from .api_civicmapper.core import (
 from .api_civicmapper.config import (
     DELIMITER,
     TZ,
-    F_CSV
+    F_CSV,
+    INTERVAL_15MIN,
+    INTERVAL_DAILY,
+    INTERVAL_HOURLY,
+    INTERVAL_MONTHLY,
+    INTERVAL_SUM,
+    MAX_RECORDS
 )
 from .models import (
     RainfallEvent, 
@@ -138,10 +144,18 @@ def get_rainfall_data(postgres_table_model, raw_args=None):
     
     # parse the datetime parameters into a complete list of all possible date times
     # print("parse_datetime_args")
-    dts = parse_datetime_args(args['start_dt'], args['end_dt'], args['rollup'])
+    dts, interval_count = parse_datetime_args(args['start_dt'], args['end_dt'], args['rollup'])
     # print(dts)
 
-    # TODO: check for  datetime + rollup parameters here
+    # parse sensor ID string to a list. if not provided, the subsequent query will return all sensors.
+    sensor_ids = []
+    if args['sensor_ids']:
+        sensor_ids = [str(i) for i in args['sensor_ids'].split(DELIMITER)]
+
+
+    # SAFETY VALVE: kill the response if the query will return more than we can handle.
+    # The default threshold ~ is slightly more than 1 month of pixel records for our largest catchment area
+
     # if any([
     #     # 15-minute: < 1 week 
     #     args['rollup'] == INTERVAL_15MIN and len(dts) > (24 * 4 * 7),
@@ -154,20 +168,19 @@ def get_rainfall_data(postgres_table_model, raw_args=None):
     #     # sum: < 1 year
     #     args['rollup'] == INTERVAL_SUM and len(dts) > (4 * 24 * 366)
     # ]):
-    #     messages.add("The submitted request would generate a larger response than we can manage for you right now. Use one of the following combinations of rollup and datetime ranges: 15-minute: < 1 week; hourly < 1 month; daily: < 3 months; monthly: < 1 year; sum: < 1 year. Please either reduce the date/time range queried or increase the time interval for roll-up parameter.")
-    #     response = ResponseSchema(
-    #         status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE,
-    #         response_data=dict((k, args[k]) for k in ['rollup', 'start_dt', 'end_dt'] if k in args),
-    #         messages=messages.messages
-    #     )
-    #     # return Response(data=response.as_dict(), status=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE)
-    #     # return response.as_dict()
+        # messages.add("The submitted request would generate a larger response than we can manage for you right now. Use one of the following combinations of rollup and datetime ranges: 15-minute: < 1 week; hourly < 1 month; daily: < 3 months; monthly: < 1 year; sum: < 1 year. Please either reduce the date/time range queried or increase the time interval for roll-up parameter.")
+    record_count = interval_count * len(sensor_ids)
+    # print(interval_count, len(sensor_ids))
+    print("record_count", record_count)
 
-    
-    # parse sensor ID string to a list. if not provided, the subsequent query will return all sensors.
-    sensor_ids = []
-    if args['sensor_ids']:
-        sensor_ids = [str(i) for i in args['sensor_ids'].split(DELIMITER)]
+    if record_count > MAX_RECORDS:
+        messages.add("The request is unfortunately a bit more than we can handle for you right now: this query would return {0:,} data points and we can handle ~{1:,} at the moment. Please reduce the date/time range.".format(record_count, MAX_RECORDS))
+        response = ResponseSchema(
+            status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE,
+            request_args=args,
+            messages=messages.messages
+        )
+        return response.as_dict()
 
 
     # use parsed args and datetime list to query the database
@@ -178,6 +191,7 @@ def get_rainfall_data(postgres_table_model, raw_args=None):
         messages.add("Could not retrieve records from the database. Error(s): {0}".format(str(e)))
         response = ResponseSchema(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            request_args=args,
             messages=messages.messages
         )
         #return Response(data=response.as_dict(), status=status.HTTP_500_INTERNAL_SERVER_ERROR)

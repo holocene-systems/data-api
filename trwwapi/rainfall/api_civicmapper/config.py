@@ -68,3 +68,5 @@ F_MD = [] #['md', 'markdown']
 F_CSV = ['csv']
 F_ARRAYS = ['arrays']
 F_ALL = F_MD + F_CSV + F_GEOJSON + F_JSON + F_ARRAYS
+
+MAX_RECORDS = 750000

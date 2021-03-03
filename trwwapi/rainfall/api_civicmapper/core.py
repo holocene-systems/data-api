@@ -245,7 +245,7 @@ def parse_datetime_args(start_dt, end_dt, interval=None, delta=15):
         pass
     
     # calculate all datetimes between the start and end at 15 minute intervals.
-    # dts = [
+    # all_dts = [
     #     dt.isoformat() for dt in 
     #     datetime_range(
     #         start_dt, 
@@ -253,9 +253,10 @@ def parse_datetime_args(start_dt, end_dt, interval=None, delta=15):
     #         timedelta(minutes=delta)
     #     )
     # ]
+    interval_count = len([i for i in datetime_range(start_dt, end_dt, timedelta(minutes=delta))])
     # print(len(dts), "datetimes to be queried")
     # return dts
-    return [start_dt, end_dt]
+    return [start_dt, end_dt], interval_count
 
 @retry(stop=(stop_after_attempt(5) | stop_after_delay(60)), wait=wait_random_exponential(multiplier=2, max=30), reraise=True)
 def query_ddb_exact(pynamodb_table, sensor_ids, all_datetimes):
@@ -315,7 +316,7 @@ def _build_query(tablename, all_datetimes, sensor_ids=None):
     # Note that the use of a raw SQL query above means we later on will use a 
     # custom serializer instead of the model's built-in, default serializer    
 
-    # minimally, we need dates/times
+    # we need start and end dates/times
     query_params = [
         all_datetimes[0],
         all_datetimes[-1],
@@ -351,8 +352,7 @@ def _postprocess_pg_response(postgres_table_model, queryset, timezone=TZ):
         # It's unclear why we would get anything else here.
         # TODO: handle error "Cannot convert tz-naive timestamps, use tz_localize 
         # to localize" (seems to only show up when df is empty)
-        
-        print(df['ts'])
+
         df['ts'] = pd.to_datetime(df['ts'], errors='coerce')\
             .dt\
             .tz_convert(timezone)\
