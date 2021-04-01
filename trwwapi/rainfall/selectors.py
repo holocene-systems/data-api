@@ -1,4 +1,9 @@
 from datetime import datetime, timedelta
+import gc
+import logging
+import pdb
+import objgraph
+
 from django.utils.timezone import localtime
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
@@ -7,6 +12,7 @@ from rest_framework.response import Response
 from marshmallow import ValidationError
 from dateutil import tz
 from django_rq import job, get_queue
+
 
 from ..utils import DebugMessages, _parse_request
 from .api_civicmapper.core import (
@@ -39,6 +45,8 @@ from .serializers import (
     ResponseSchema,
     parse_and_validate_args
 )
+
+logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------------------
 # SELECTOR+WORKER FOR THE HIGH LEVEL API VIEWS
@@ -116,6 +124,9 @@ def get_rainfall_data(postgres_table_model, raw_args=None):
     args = {}
     try:
         # print("parse_and_validate_args")
+        # print(type(raw_args), raw_args)
+        raw_args = dict(**raw_args)
+        # print(type(raw_args), raw_args)
         args = parse_and_validate_args(raw_args)
     # return errors from validation
     except ValidationError as e:
@@ -187,21 +198,24 @@ def get_rainfall_data(postgres_table_model, raw_args=None):
     try:
         # print("query_pgdb")
         results = query_pgdb(postgres_table_model, sensor_ids, dts)
+    #print(results)
+    
     except Exception as e:
+        print(e)
         messages.add("Could not retrieve records from the database. Error(s): {0}".format(str(e)))
         response = ResponseSchema(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             request_args=args,
             messages=messages.messages
         )
-        #return Response(data=response.as_dict(), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(data=response.as_dict(), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         #return response.as_dict()
 
     # -------------------------------------------------------------------
     # post process the query results, if any
 
     if len(results) > 0:
-        
+            
         # perform selects and/or aggregations based on zerofill and interval args
         # print("aggregate_results_by_interval")
         aggregated_results = aggregate_results_by_interval(results, args['rollup'])
@@ -218,6 +232,7 @@ def get_rainfall_data(postgres_table_model, raw_args=None):
 
         # return the result
         # print("completed, returning the results")
+        # pdb.set_trace()
 
         # if the request was for a csv in the legacy teragon format, then we only return that
         if args['f'] in F_CSV:
@@ -241,9 +256,10 @@ def get_rainfall_data(postgres_table_model, raw_args=None):
             request_args=args,
             messages=messages.messages
         )
-        #return Response(response.as_dict(), status=status.HTTP_200_OK)
+        
     
     # print("RESPONSE", response.as_dict())
+    
     return response.as_dict()
 
 
@@ -253,6 +269,9 @@ def handle_request_for(rainfall_model, request, *args, **kwargs):
     URL to the job results. Responsible for forming the shape, but not content, 
     of the response.
     """
+    logger.debug("STARTING handle_request_for")
+    logger.debug(objgraph.show_growth())
+
     job_meta = None
     raw_args = _parse_request(request)
     # print(args, kwargs, raw_args)
@@ -311,8 +330,10 @@ def handle_request_for(rainfall_model, request, *args, **kwargs):
                     status_message=job_status,
                     # messages=['running job {0}'.format(job.id)],
                     meta=job_meta
-                )                           
+                )
 
+            logger.debug(objgraph.show_growth())
+            gc.collect()
             return Response(response.as_dict(), status=response.status_code)
         else:
             # if the job ID wasn't found, we kick it back.
@@ -322,12 +343,14 @@ def handle_request_for(rainfall_model, request, *args, **kwargs):
                 messages=['The requested job {} does not exist.'.format(kwargs['jobid'])],
                 meta=job_meta
             )
+            logger.debug(objgraph.show_growth())
+            gc.collect()
             return Response(response.as_dict(), status=response.status_code)
 
     # If not, this is a new request. Queue it up and return the job status
     # and a URL for checking on the job status
     else:
-        # print("This is a new request.", raw_args)
+        logger.debug("This is a new request.")
         job = get_rainfall_data.delay(rainfall_model, raw_args)
         job_url = "{0}{1}/".format(request.build_absolute_uri(request.path), job.id)
         response = ResponseSchema(
@@ -342,6 +365,8 @@ def handle_request_for(rainfall_model, request, *args, **kwargs):
         )
 
         # return redirect(job_url)
+        logger.debug(objgraph.show_growth()) 
+        gc.collect()
         return Response(response.as_dict(), status=status.HTTP_200_OK)
 
 # ------------------------------------------------------------------------------
