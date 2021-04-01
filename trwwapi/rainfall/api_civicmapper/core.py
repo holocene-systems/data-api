@@ -5,6 +5,8 @@ from pathlib import PurePosixPath
 from datetime import datetime, timedelta
 from urllib.parse import parse_qs
 from collections import OrderedDict
+import pdb
+
 from dateutil.parser import parse
 from dateutil import tz
 import petl as etl
@@ -21,6 +23,7 @@ from .models import RequestSchema, RainfallObservation, TableGARR15, TableGauge1
 from .utils import datetime_range, dt_parser
 from .config import (
     DATA_DIR,
+    TZ,
     TZI,
     RAINGAUGE_RESOURCE_PATH,
     PIXEL_RESOURCE_PATH,
@@ -332,39 +335,57 @@ def _build_query(tablename, all_datetimes, sensor_ids=None):
 
 @Timer(name="query_pgdb__query_pgdb", text="{name}: {:.4f}s")
 def _query_pgdb(postgres_table_model, query, query_params):
-    return postgres_table_model.objects.raw(query, query_params)
+    return postgres_table_model.objects.raw(query, query_params).iterator()
 
 @Timer(name="query_pgdb__postprocess_pg_response", text="{name}: {:.4f}s")
 def _postprocess_pg_response(postgres_table_model, queryset, timezone=TZ):
 
-    # if len(DataFrame.index) > 0:
-    if len(queryset) > 0:
+    # if len(queryset) > 0:
         # read results into a dataframe:
-        df = postgres_table_model.as_dataframe_using_drf_serializer(
-            queryset=queryset,
-            drf_serializer=RainfallQueryResultSerializer
-        )
+        # df = postgres_table_model.as_dataframe_using_drf_serializer(
+        #     queryset=queryset,
+        #     drf_serializer=RainfallQueryResultSerializer
+        # )
 
-        # the output will have timezone-aware timestamps in UTC; convert
-        # to local timezone in iso-format
+    # the output will have timezone-aware timestamps in UTC; convert
+    # to local timezone in iso-format
 
-        # TODO: handle error "Can only use .dt accessor with datetimelike values".
-        # It's unclear why we would get anything else here.
-        # TODO: handle error "Cannot convert tz-naive timestamps, use tz_localize 
-        # to localize" (seems to only show up when df is empty)
+    # TODO: handle error "Can only use .dt accessor with datetimelike values".
+    # It's unclear why we would get anything else here.
+    # TODO: handle error "Cannot convert tz-naive timestamps, use tz_localize 
+    # to localize" (seems to only show up when df is empty)
 
-        df['ts'] = pd.to_datetime(df['ts'], errors='coerce')\
-            .dt\
-            .tz_convert(timezone)\
-            .apply(lambda v: v.isoformat())
-            
-        # convert the dataframe to a list of dictionaries
-        rows = df.to_dict(orient='records')
+    # if len(df.index > 0):
 
-        return rows
+    #     df['ts'] = pd\
+    #         .to_datetime(df['ts'], errors='coerce')\
+    #         .dt\
+    #         .tz_convert(timezone)\
+    #         .apply(lambda v: v.isoformat())
+
+
+    #     # convert the dataframe to a list of dictionaries
+    #     rows = df.to_dict(orient='records')
+
+    #     return rows
         
-    else:
-        return []
+    # else:
+    #     return []
+
+
+    rows = [
+        dict(
+            ts=r.ts.astimezone(TZ).isoformat(),
+            id=str(r.id),
+            val=r.val,
+            src=r.src
+        )
+        for r in queryset
+    ]
+
+    # pdb.set_trace()
+
+    return rows        
 
 # @retry(stop=(stop_after_attempt(5) | stop_after_delay(60)), wait=wait_random_exponential(multiplier=2, max=30), reraise=True)
 @Timer(name="query_pgdb", text="{name}: {:.4f}s")
@@ -375,11 +396,14 @@ def query_pgdb(postgres_table_model, sensor_ids, all_datetimes, timezone=TZ):
 
     # build the query using the provided params
     query, query_params = _build_query(tablename, all_datetimes, sensor_ids)
+    #pdb.set_trace()
     # query the db
     queryset = _query_pgdb(postgres_table_model, query, query_params)
+    #pdb.set_trace()
     # post-process the result
     rows = _postprocess_pg_response(postgres_table_model, queryset, timezone)
-
+    # print(rows)
+    # pdb.set_trace()
     return rows
 
 
@@ -528,8 +552,9 @@ def aggregate_results_by_interval(query_results, rollup):
         return list(etl.dicts(t))
             
     else:
+        return query_results
         # ensure that all records have the same shape:
-        return list(etl.dicts(etl.fromdicts(query_results)))
+        # return list(etl.dicts(etl.fromdicts(query_results)))
 
 def apply_zerofill(transformed_results, zerofill, dts):
     """applies zerofill, which is to say, if zerofill==False, determines
