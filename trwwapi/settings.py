@@ -122,6 +122,17 @@ if 'DATABASE_URL' in os.environ.keys():
     DATABASES['default'].update(db_from_env)
     DATABASES['default']['ENGINE'] = 'django.contrib.gis.db.backends.postgis'
 
+# caching
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'TIMEOUT': 15,
+        'OPTIONS': {
+            'MAX_ENTRIES': 10
+        }
+    }
+}
+
 
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
@@ -274,7 +285,7 @@ LOGGING = {
             'class': 'logging.NullHandler',
         },
         'console': {
-            'level': 'INFO',
+            'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             'formatter': 'verbose'
         }
