@@ -10,7 +10,7 @@ RUN apt-get update && \
 	gdal-bin \
 	git
 
-RUN pip install pipenv==2018.11.26
+RUN pip install pipenv
 # COPY requirements.txt /code/
 COPY Pipfile /code/
 COPY Pipfile.lock /code/

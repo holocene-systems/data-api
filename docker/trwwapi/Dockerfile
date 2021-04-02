@@ -14,7 +14,7 @@ ENV PYTHONUNBUFFERED 1
 RUN mkdir /code
 WORKDIR /code/
 # RUN pip install
-RUN pip install pipenv==2018.11.26
+RUN pip install pipenv
 # COPY requirements.txt /code/requirements.txt
 COPY Pipfile /code/Pipfile
 COPY Pipfile.lock /code/Pipfile.lock
