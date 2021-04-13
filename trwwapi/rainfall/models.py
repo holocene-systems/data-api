@@ -3,7 +3,7 @@ from django.contrib.gis.db import models
 # from django.contrib.postgres.indexes import 
 from django.db.models import JSONField
 from django.db.models.constraints import UniqueConstraint
-from .mixins import PandasModelMixin, TimestampedMixin
+from ..common.mixins import PandasModelMixin, TimestampedMixin
 
 
 class RainfallObservationMeta(PandasModelMixin):

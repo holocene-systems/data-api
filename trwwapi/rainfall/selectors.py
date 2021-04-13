@@ -15,14 +15,14 @@ from django_rq import job, get_queue
 
 
 from ..utils import DebugMessages, _parse_request
-from .api_civicmapper.core import (
+from .api_v2.core import (
     parse_datetime_args,
     query_pgdb,
     aggregate_results_by_interval,
     apply_zerofill,
     format_results
 )
-from .api_civicmapper.config import (
+from .api_v2.config import (
     DELIMITER,
     TZ,
     F_CSV,

@@ -10,7 +10,7 @@ from rest_framework.decorators import api_view
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import FilterSet, DjangoFilterBackend
 
-from .api_civicmapper.config import TZI
+from .api_v2.config import TZI
 
 from .serializers import (
     GarrObservationSerializer, 

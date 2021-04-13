@@ -14,7 +14,7 @@ from marshmallow import (
     pre_load
 )
 
-from .api_civicmapper.config import (
+from .api_v2.config import (
     TZ_STRING, 
     TZI, 
     TZINFOS,
@@ -30,7 +30,7 @@ from .api_civicmapper.config import (
     F_JSON,
     F_MD
 )
-from .api_civicmapper.utils import datetime_encoder, dt_parser
+from .api_v2.utils import datetime_encoder, dt_parser
 
 from .models import GarrObservation, GaugeObservation, RtrrObservation, RtrgObservation, RainfallEvent, Pixel, Gauge
 
