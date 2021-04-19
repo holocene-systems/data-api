@@ -1,3 +1,19 @@
 from django.contrib import admin
+# from django.contrib.admin import ModelAdmin
+from leaflet.admin import LeafletGeoAdmin
 
-# Register your models here.
+from .models import (
+    Resource,
+    Collection
+)
+
+# customize admin site info
+admin.site.site_header = '3RWW API'
+admin.site.site_title = '3RWW API'
+admin.site.index_title = '3RWW API'
+
+for i in [
+    [Collection],
+    [Resource]
+]:
+    admin.site.register(*i)
