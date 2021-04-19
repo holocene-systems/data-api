@@ -1,7 +1,6 @@
 from django.shortcuts import render, redirect
 
-# Create your views here.
-
 def index(request):
-
-    return redirect("rainfall/")
+    # return render(request, 'index.html')
+    return redirect("admin/")
+    

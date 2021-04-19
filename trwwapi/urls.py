@@ -25,6 +25,7 @@ urlpatterns = [
     # path('admin/storage/', include('cloud_browser.urls_admin')),
     path('admin/', admin.site.urls),
     path('rainfall/', include('trwwapi.rainfall.urls')),
+    path('rainways/', include('trwwapi.rainways.urls')),
     # path('storage/', include('cloud_browser.urls')),
     # job queue
     path('jobs/', include('django_rq.urls'))

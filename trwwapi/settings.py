@@ -59,10 +59,12 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'django_filters',
     'leaflet',
+    'taggit',
     # 'storages',
     # 'cloud_browser',
     # our apps
     'trwwapi.rainfall',
+    'trwwapi.rainways'
 ]
 
 MIDDLEWARE = [
@@ -285,7 +287,7 @@ LOGGING = {
             'class': 'logging.NullHandler',
         },
         'console': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.StreamHandler',
             'formatter': 'verbose'
         }

@@ -2,4 +2,6 @@ from django.apps import AppConfig
 
 
 class RainfallConfig(AppConfig):
-    name = 'rainfall'
+    name = 'trwwapi.rainfall'
+    label = 'rainfall'
+    verbose_name = '3RWW Rainfall API'
