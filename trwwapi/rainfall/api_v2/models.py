@@ -20,7 +20,8 @@ from marshmallow import (
 )
 from requests.status_codes import _codes as http_codes_lookup
 
-from .config import (
+from ...common.config import (
+#from .config import (
     AWS_REGION,
     TARGET_TABLE_RTRR15,
     TARGET_TABLE_GARR15,

@@ -22,7 +22,8 @@ from .api_v2.core import (
     apply_zerofill,
     format_results
 )
-from .api_v2.config import (
+from ..common.config import (
+#from .api_v2.config import (
     DELIMITER,
     TZ,
     F_CSV,

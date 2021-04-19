@@ -69,3 +69,11 @@ F_ARRAYS = ['arrays']
 F_ALL = F_MD + F_CSV + F_GEOJSON + F_JSON + F_ARRAYS
 
 MAX_RECORDS = 750000
+
+RAINWAYS_DEFAULT_CRS = 2272
+
+RAINWAYS_RESOURCES = dict(
+    sustain="https://services6.arcgis.com/dMKWX9NPCcfmaZl3/arcgis/rest/services/sustain2013_composite/FeatureServer/0/query",
+    soils="https://services6.arcgis.com/dMKWX9NPCcfmaZl3/arcgis/rest/services/Rainways_TetraTech_NRCS_Soils/FeatureServer/0/query",
+    slope="s3://3rww-rainways-data/rainways_3m_filled_slope_cog.tif"
+)

@@ -18,7 +18,8 @@ from .core import (
 )
 from .models import ResponseSchema
 from .utils import datetime_encoder
-from .config import REF_DOCUMENTATION_URL
+from ...common.config import (REF_DOCUMENTATION_URL)
+# from .config import REF_DOCUMENTATION_URL
 
 def handler(event, context):
 

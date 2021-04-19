@@ -10,7 +10,8 @@ from rest_framework.decorators import api_view
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import FilterSet, DjangoFilterBackend
 
-from .api_v2.config import TZI
+from ..common.config import TZI
+# from .api_v2.config import TZI
 
 from .serializers import (
     GarrObservationSerializer, 
@@ -64,36 +65,44 @@ class ApiDefaultRouter(routers.DefaultRouter):
 # these are the views that do the work for us
 
 class RainfallGaugeApiView(GenericAPIView):
+    """Rain Gauge data, fully QA/QC'd and provided by 3RWW + ALCOSAN.
+    """
 
-    def get(self, request, *args, **kwargs):
-        return handle_request_for(GaugeObservation, request, *args, **kwargs)
+    # def get(self, request, *args, **kwargs):
+    #     return handle_request_for(GaugeObservation, request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         return handle_request_for(GaugeObservation, request, *args, **kwargs)
 
 
 class RainfallGarrApiView(GenericAPIView):
+    """Gauge-Adjusted Radar Rainfall Data. Radar-based rainfall estimated calibrated with rain gauges, interpolated to 1km pixels. Historic data only. Provided by Vieux Associates.
+    """
 
-    def get(self, request, *args, **kwargs):
-        return handle_request_for(GarrObservation, request, *args, **kwargs)
+    # def get(self, request, *args, **kwargs):
+    #     return handle_request_for(GarrObservation, request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         return handle_request_for(GarrObservation, request, *args, **kwargs)
 
 
 class RainfallRtrrApiView(GenericAPIView):
+    """Real-time Radar Rainfall data. Provided through Vieux Associates. Data is provisional and has not be through a QA/QC process.
+    """        
 
-    def get(self, request, *args, **kwargs):
-        return handle_request_for(RtrrObservation, request, *args, **kwargs)
+    # def get(self, request, *args, **kwargs):
+    #     return handle_request_for(RtrrObservation, request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         return handle_request_for(RtrrObservation, request, *args, **kwargs)
 
 
 class RainfallRtrgApiView(GenericAPIView):
+    """Real-time Rain Gauge data. Provided through Datawise. Data is provisional and has not be through a QA/QC process.
+    """    
 
-    def get(self, request, *args, **kwargs):
-        return handle_request_for(RtrgObservation, request, *args, **kwargs)
+    # def get(self, request, *args, **kwargs):
+    #     return handle_request_for(RtrgObservation, request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         return handle_request_for(RtrgObservation, request, *args, **kwargs)

@@ -9,7 +9,8 @@ from .api_v2.core import (
     _rollup_date
 )
 from .api_v2.utils import dt_parser
-from .api_v2.config import (
+from ..common.config import (
+#from .api_v2.config import (
     TZ, TZI, TZ_STRING, TZINFOS, 
     INTERVAL_15MIN, INTERVAL_HOURLY, INTERVAL_DAILY, INTERVAL_SUM
 )

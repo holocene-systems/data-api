@@ -21,7 +21,8 @@ from django.db.models import Q
 
 from .models import RequestSchema, RainfallObservation, TableGARR15, TableGauge15, TableRTRR15
 from .utils import datetime_range, dt_parser
-from .config import (
+from ...common.config import (
+#from .config import (
     DATA_DIR,
     TZ,
     TZI,

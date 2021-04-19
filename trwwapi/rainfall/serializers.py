@@ -14,21 +14,14 @@ from marshmallow import (
     pre_load
 )
 
-from .api_v2.config import (
+from ..common.config import (
+#from .api_v2.config import (
     TZ_STRING, 
     TZI, 
     TZINFOS,
     INTERVAL_SUM,
-    INTERVAL_15MIN,
     INTERVAL_TRUTHS,
     ZEROFILL_TRUTHS,
-    DELIMITER,
-    JSEND_CODES,
-    F_ARRAYS, 
-    F_CSV,
-    F_GEOJSON,
-    F_JSON,
-    F_MD
 )
 from .api_v2.utils import datetime_encoder, dt_parser
 
@@ -224,8 +217,6 @@ class ResponseSchema:
             status_code=self.status_code,
             messages=self.messages
         )
-        
-
     
     def as_dict(self):
         """assemble the response as a dictionary
