@@ -3,17 +3,23 @@
 
 from typing import List, Tuple
 from dataclasses import field
+from datetime import datetime
 
 from marshmallow_dataclass import dataclass as mdc
 import requests
-import fiona
 import rasterio
 from rasterio import mask as rasterio_mask
 import geopandas as gpd
 import numpy as np
 import petl as etl
 from codetiming import Timer
+from dateutil.relativedelta import relativedelta
 
+from ..rainfall.api_v3.core import query_one_sensor_rollup_monthly
+from ..rainfall.models import (
+    RtrrObservation, 
+    Pixel
+)
 from ..common.config import (
     RAINWAYS_DEFAULT_CRS, 
     RAINWAYS_RESOURCES # TODO: replace with database query
@@ -44,6 +50,7 @@ class RwPublicResult:
     sustain: List[dict] = field(default_factory=list)
     slope: List[RasterSummaryStat] = field(default_factory=list)
     elev: List[RasterSummaryStat] = field(default_factory=list)
+    rainfall: List[dict] = field(default_factory=list)
 
 
 class RwCore():
@@ -212,7 +219,7 @@ class RwPublicAnalysis(RwCore):
         # instantiate a results dataclass
         self.results = RwPublicResult()
 
-    @Timer(name="rwpublicanalysis__soil_summary", text="{name}: {:.4f}s")
+    @Timer(name="rwpub__soil_summary", text="{name}: {:.4f}s")
     def soil_summary(self):
 
         success, result = self.clip_and_dissolve_esri_feature_layer(
@@ -244,7 +251,7 @@ class RwPublicAnalysis(RwCore):
 
             return None
 
-    @Timer(name="rwpublicanalysis__sustain_summary", text="{name}: {:.4f}s")
+    @Timer(name="rwpub__sustain_summary", text="{name}: {:.4f}s")
     def sustain_summary(self):
         success, result = self.clip_and_dissolve_esri_feature_layer(
             feature_layer_query_url=RAINWAYS_RESOURCES['sustain'],
@@ -274,7 +281,7 @@ class RwPublicAnalysis(RwCore):
 
             return None
 
-    @Timer(name="rwpublicanalysis__slope_summary", text="{name}: {:.4f}s")
+    @Timer(name="rwpub__slope_summary", text="{name}: {:.4f}s")
     def slope_summary(self):
 
         success, result = self.clip_cog(
@@ -300,5 +307,33 @@ class RwPublicAnalysis(RwCore):
             self.messages.append(result)
 
 
-    def rainfall_summary(self):
-        pass
+    @Timer(name="rwpub__rainfall_summary", text="{name}: {:.4f}s")
+    def rainfall_summary(self):        
+
+        # get the centroid of all provided geometry
+        pt = self.aoi_gdf.unary_union.centroid.wkt
+
+        # use it to find the overlapping containing radar rainfall pixel
+        try:
+            sensor_id = Pixel.objects.get(geom__contains=pt).pixel_id
+        except Pixel.DoesNotExist as e:
+            self.status = 'failed'
+            self.messages.extend([str(e), "Radar rainfall data is not available for for this location from 3RWW."])
+            return None
+
+        try:
+            # get datetimes for the last six months
+            end_dt = datetime.now().replace(day=1,hour=0,minute=0, second=0,microsecond=0)
+            start_dt = end_dt + relativedelta(months=-6)
+            # query the single sensor and get back a monthly rainfall totals
+            results = query_one_sensor_rollup_monthly(
+                RtrrObservation, 
+                [start_dt, end_dt], 
+                sensor_id
+            )
+            self.results.rainfall.extend(results)
+            return results
+        except RtrrObservation.DoesNotExist as e:
+            self.status = 'failed'
+            self.messages.extend([str(e), "Radar rainfall data is not available for for this location from 3RWW."])
+            return None

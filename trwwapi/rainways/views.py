@@ -60,13 +60,14 @@ def rainways_area_of_interest_analysis(request):
     analysis.slope_summary()
     analysis.soil_summary()
     analysis.sustain_summary()
+    analysis.rainfall_summary()
 
     r = TrwwApiResponseSchema(
         # args={"geojson": analysis.aoi_geojson},
         data=RwPublicResult.Schema().dump(analysis.results), # response schema expects a dictionary here.
         status_code=200, 
         status='success', 
-        messages=['This worked!'],
+        messages=analysis.messages,
         meta={"count": len(analysis.aoi_gdf.index)}
     )
 

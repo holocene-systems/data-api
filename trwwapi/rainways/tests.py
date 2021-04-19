@@ -6,7 +6,7 @@ from .core import RwPublicResult
 from .views import rainways_area_of_interest_analysis
 from ..common.models import TrwwApiResponseSchema
 
-class RwPublicTestCases(SimpleTestCase):
+class RwPublicTestCases(TestCase):
 
     client_class = APIClient
     
