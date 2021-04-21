@@ -31,7 +31,7 @@ class ApiDefaultRouter(routers.DefaultRouter):
 # -------------------------------------------------------------------
 # API Analytical Views
 
-@api_view(['POST'])
+@api_view(['GET'])
 def rainways_area_of_interest_analysis(request):
     """
     Given a GeoJSON, this returns summary statistics for intersecting layers of interest.

@@ -16,6 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.conf import settings
 from django.urls import path, include
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 from .views import index
 
@@ -23,9 +24,16 @@ from .views import index
 urlpatterns = [
     path('', index),
     # path('admin/storage/', include('cloud_browser.urls_admin')),
+
     path('admin/', admin.site.urls),
     path('rainfall/', include('trwwapi.rainfall.urls')),
     path('rainways/', include('trwwapi.rainways.urls')),
+
+    # documentation
+    path('schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('docs/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('docs/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),    
+
     # path('storage/', include('cloud_browser.urls')),
     # job queue
     path('jobs/', include('django_rq.urls'))

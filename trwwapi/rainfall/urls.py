@@ -9,15 +9,13 @@ from .views import (
     RainfallGaugeApiView, 
     RainfallRtrrApiView, 
     RainfallRtrgApiView, 
-    get_latest_observation_timestamps_summary
-)
-# viewsets
-from .views import (
+    # get_latest_observation_timestamps_summary
     GarrObservationViewset, 
     GaugeObservationViewset, 
     RtrrObservationViewset, 
     RtrgbservationViewset, 
-    RainfallEventViewset
+    RainfallEventViewset,
+    LatestObservationTimestampsSummary
 )
 
 # -----------------------------------------------
@@ -29,18 +27,19 @@ router.register(r'calibrated-gauge', GaugeObservationViewset)
 router.register(r'realtime-radar', RtrrObservationViewset)
 router.register(r'realtime-gauge', RtrgbservationViewset)
 router.register(r'rainfall-events', RainfallEventViewset)
+router.register(r'v2/latest-observations', LatestObservationTimestampsSummary, basename='latest_observations')
 
 # -----------------------------------------------
 # API URLs for high-level endpoints
 
 urlpatterns = [
 
-    # --------------------------
-    # documentation
+    # # --------------------------
+    # # documentation
     
-    path('schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('docs/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('docs/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    # path('schema/', SpectacularAPIView.as_view(), name='schema'),
+    # path('docs/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    # path('docs/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
     
     # --------------------------
     # high-level custom routes - multiple routes-per-view represent multiple 
@@ -77,7 +76,7 @@ urlpatterns = [
 
     # --------------------------
     # custom routes (for function-based views)
-    path('v2/latest-observations/', get_latest_observation_timestamps_summary),
+    # path('v2/latest-observations/', LatestObservationTimestampsSummary.as_view({'get': 'list'})),
     
     # --------------------------
     # low-level DRF-registered routes

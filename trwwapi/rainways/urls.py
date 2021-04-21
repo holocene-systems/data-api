@@ -1,18 +1,18 @@
 from django.shortcuts import redirect
 from django.urls import path, include
-from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+# from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from .views import rainways_area_of_interest_analysis, ApiDefaultRouter
 
 router = ApiDefaultRouter()
 
 urlpatterns = [
 
-    # --------------------------
-    # documentation
+    # # --------------------------
+    # # documentation
     
-    path('schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('docs/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('docs/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    # path('schema/', SpectacularAPIView.as_view(), name='schema'),
+    # path('docs/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    # path('docs/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 
     # --------------------------
     # DRF-registered routes
@@ -21,5 +21,8 @@ urlpatterns = [
     # --------------------------
     # custom routes (for function-based views)
     
-    path('/public/aoi-analysis/acsa/', rainways_area_of_interest_analysis),
+    # TODO: dynamic geography-specifc routes (e.g., acsa here becomes a parmeter,
+    # which uses a geographic model to select the right data resources for the 
+    # analysis)
+    path('public/aoi-analysis/acsa/', rainways_area_of_interest_analysis),
 ]
