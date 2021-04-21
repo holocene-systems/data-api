@@ -51,7 +51,7 @@ class ApiRouterRootView(routers.APIRootView):
         return "3RWW Rainfall Data API"
 
     def get_view_description(self, html=False):
-        text = "Get 3RWW high-resolution rainfall data"
+        text = "<p>The 3RWW Rainfall API provides access to real-time (provisional) and historic (calibrated) rainfall data for the physical rain gauges and 'virtual' gauges (calibrated radar pixels) in Allegheny County.</p><p>3 Rivers Wet Weather, with support from Vieux Associates, uses calibrated data from the NEXRAD radar located in Moon Township, PA with rain gauge measurements collected during the same time period and rain event for every square kilometer in Allegheny County. The resulting rainfall data is equivalent in accuracy to having 2,276 rain gauges placed across the County. Since April 2000, 3 Rivers has accumulated a massive repository of this high resolution spatiotemporal calibrated radar rainfall data for Allegheny County, which now includes nearly 2 billion data points.</p>"
         if html:
             return mark_safe(f"<p>{text}</p>")
         else:
