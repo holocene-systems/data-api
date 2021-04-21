@@ -308,10 +308,10 @@ class RwPublicAnalysis(RwCore):
 
 
     @Timer(name="rwpub__rainfall_summary", text="{name}: {:.4f}s")
-    def rainfall_summary(self):        
+    def rainfall_summary(self):
 
-        # get the centroid of all provided geometry
-        pt = self.aoi_gdf.unary_union.centroid.wkt
+        # get the centroid of all provided geometry in the same coordinate system as the pixels
+        pt = self.aoi_gdf.to_crs(epsg=Pixel.geom.field.srid).unary_union.centroid.wkt
 
         # use it to find the overlapping containing radar rainfall pixel
         try:
