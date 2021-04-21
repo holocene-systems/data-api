@@ -1,0 +1,16 @@
+{% extends "rest_framework/base.html" %}
+{% load static %}
+
+{% block bootstrap_theme %}
+    <link rel="stylesheet" href="{% static 'bs3/bootstrap.min.css' %}" type="text/css">
+{% endblock %}
+
+{% block branding %}
+    <span class="navbar-brand">
+        <span style="display:inline;">
+            <img class="img-fluid" src={% static 'assets/3rww_logo_symbol_inverse_transparent.png' %} style="max-height:25px;padding-bottom:3px;display:inline;"/> 
+            3RWW API
+        </span>
+    </span>
+{% endblock %}
+
