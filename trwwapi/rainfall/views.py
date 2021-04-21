@@ -132,6 +132,10 @@ class RainfallEventFilter(FilterSet):
         fields = ['event_label', 'start_dt', 'end_dt']
 
 class RainfallEventViewset(viewsets.ReadOnlyModelViewSet):
+    """
+    Get a lists of rainfall event time periods in Allegheny County since 2000. Events are identified by Vieux Associates; more detail on each event is provided in Vieux's monthly report to 3 Rivers Wet Weather. Please note that the list is not comprehensive.
+    """
+
     queryset = RainfallEvent.objects.all()
     serializer_class = RainfallEventSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -141,6 +145,9 @@ class RainfallEventViewset(viewsets.ReadOnlyModelViewSet):
 
 
 class GarrObservationViewset(viewsets.ReadOnlyModelViewSet):
+    """
+    Get calibrated, gauge-adjusted radar rainfall observations for 15-minute time intervals. Data created by Vieux Associates for 3 Rivers Wet Weather from available NEXRAD and local rain gauges.
+    """    
     queryset = GarrObservation.objects.all()
     serializer_class  = GarrObservationSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -149,6 +156,9 @@ class GarrObservationViewset(viewsets.ReadOnlyModelViewSet):
 
 
 class GaugeObservationViewset(viewsets.ReadOnlyModelViewSet):
+    """
+    Get QA/QC'd rainfall gauge observations for 15-minute time intervals. Data captured by 3 Rivers Wet Weather and ALCOSAN.
+    """
     queryset = GaugeObservation.objects.all()
     serializer_class  = GaugeObservationSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -156,6 +166,9 @@ class GaugeObservationViewset(viewsets.ReadOnlyModelViewSet):
     pagination_class = GaugeResultsSetPagination
 
 class RtrrObservationViewset(viewsets.ReadOnlyModelViewSet):
+    """
+    Get real-time radar rainfall observations for 15-minute time intervals. Data captured by Vieux Associates from NEXRAD radar in Moon Township, PA for 3 Rivers Wet Weather. Please note that this data is provisional.
+    """  
     queryset = RtrrObservation.objects.all()
     serializer_class  = RtrrObservationSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -163,6 +176,9 @@ class RtrrObservationViewset(viewsets.ReadOnlyModelViewSet):
     pagination_class = PixelResultsSetPagination
 
 class RtrgbservationViewset(viewsets.ReadOnlyModelViewSet):
+    """
+    Get real-time rainfall gauge observations for 15-minute time intervals. Data captured by 3 Rivers Wet Weather and Datawise. Please note that this data is provisional and that observations may be missing due to technical/transmission difficulties.
+    """
     queryset = RtrgObservation.objects.all()
     serializer_class  = RtrgObservationSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -173,21 +189,23 @@ class RtrgbservationViewset(viewsets.ReadOnlyModelViewSet):
 # HELPER VIEWS
 # These provide helpers for specific use cases
 
-@api_view(['GET'])
-def get_latest_observation_timestamps_summary(request):
+# @api_view(['GET'])
+# def get_latest_observation_timestamps_summary(request):
+class LatestObservationTimestampsSummary(viewsets.ReadOnlyModelViewSet):
     
-    raw_summary = {
-        "calibrated-radar": get_latest_garrobservation(),
-        "calibrated-gauge": get_latest_gaugeobservation(),
-        "realtime-radar": get_latest_rtrrobservation(),
-        "realtime-gauge": get_latest_rtrgobservation(),
-        "rainfall-events": get_latest_rainfallevent(),
-    }
+    def list(self, request, format=None):
+        raw_summary = {
+            "calibrated-radar": get_latest_garrobservation(),
+            "calibrated-gauge": get_latest_gaugeobservation(),
+            "realtime-radar": get_latest_rtrrobservation(),
+            "realtime-gauge": get_latest_rtrgobservation(),
+            "rainfall-events": get_latest_rainfallevent(),
+        }
 
-    summary = {
-        k: v.timestamp.astimezone(TZI).isoformat() if v is not None else None
-        for k, v in 
-        raw_summary.items()
-    }
+        summary = {
+            k: v.timestamp.astimezone(TZI).isoformat() if v is not None else None
+            for k, v in 
+            raw_summary.items()
+        }
 
-    return Response(summary)
+        return Response(summary)
