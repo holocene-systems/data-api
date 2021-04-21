@@ -39,7 +39,6 @@ def rainways_area_of_interest_analysis(request):
     This endpoint is used primarily for the public-facing Rainways web app.
     """
 
-
     # handle malformed data in request here:
     if 'geojson' not in request.data.keys():
 
@@ -57,6 +56,7 @@ def rainways_area_of_interest_analysis(request):
 
     # conduct analysis
     analysis = RwPublicAnalysis(request.data['geojson'])
+    
     analysis.slope_summary()
     analysis.soil_summary()
     analysis.sustain_summary()

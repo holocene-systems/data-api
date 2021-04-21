@@ -20,6 +20,6 @@ urlpatterns = [
 
     # --------------------------
     # custom routes (for function-based views)
-    # path('acsa/', redirect('acsa/aoi-analysis/')),
-    path('acsa/aoi-analysis/', rainways_area_of_interest_analysis),
+    
+    path('/public/aoi-analysis/acsa/', rainways_area_of_interest_analysis),
 ]
