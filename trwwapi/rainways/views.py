@@ -31,7 +31,7 @@ class ApiDefaultRouter(routers.DefaultRouter):
 # -------------------------------------------------------------------
 # API Analytical Views
 
-@api_view(['GET'])
+@api_view(['POST'])
 def rainways_area_of_interest_analysis(request):
     """
     Given a GeoJSON, this returns summary statistics for intersecting layers of interest.
@@ -40,6 +40,7 @@ def rainways_area_of_interest_analysis(request):
     """
 
     # handle malformed data in request here:
+    # print(request.data)
     if 'geojson' not in request.data.keys():
 
         r = TrwwApiResponseSchema(
@@ -56,11 +57,12 @@ def rainways_area_of_interest_analysis(request):
 
     # conduct analysis
     analysis = RwPublicAnalysis(request.data['geojson'])
-    
     analysis.slope_summary()
     analysis.soil_summary()
     analysis.sustain_summary()
-    analysis.rainfall_summary()
+    analysis.rainfall_summary()    
+    # analysis.run()
+    # analysis.shutdown()
 
     r = TrwwApiResponseSchema(
         # args={"geojson": analysis.aoi_geojson},

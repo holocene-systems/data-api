@@ -52,6 +52,7 @@ uritemplate = "*"
 tenacity = "*"
 codetiming = "*"
 objgraph = "*"
+ray = "*"
 
 [requires]
 python_version = "3.8"
