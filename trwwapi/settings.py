@@ -114,7 +114,15 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT')
-    }
+    },
+    'rainfall_db': {
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': os.getenv('RAINFALL_DB_NAME'),
+        'USER': os.getenv('RAINFALL_DB_USER'),
+        'PASSWORD': os.getenv('RAINFALL_DB_PASSWORD'),
+        'HOST': os.getenv('RAINFALL_DB_HOST'),
+        'PORT': os.getenv('RAINFALL_DB_PORT')
+    }    
 }
 
 # use the connection string in DATABASE_URL if found in environment
@@ -123,6 +131,13 @@ if 'DATABASE_URL' in os.environ.keys():
     db_from_env = dj_database_url.config(conn_max_age=600, ssl_require=True)
     DATABASES['default'].update(db_from_env)
     DATABASES['default']['ENGINE'] = 'django.contrib.gis.db.backends.postgis'
+
+if 'RAINFALL_RDS_DATABASE_URL' in os.environ.keys():
+    rainfall_db_from_env = dj_database_url.config(conn_max_age=600, ssl_require=True)
+    DATABASES['rainfall_db'].update(rainfall_db_from_env)
+    DATABASES['rainfall_db']['ENGINE'] = 'django.contrib.gis.db.backends.postgis'
+
+DATABASE_ROUTERS = ('trwwapi.routers.RainfallDbRouter',)
 
 # caching
 CACHES = {

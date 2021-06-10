@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='ReportEvent',
+            name='RainfallEvent',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('created', models.DateTimeField(default=django.utils.timezone.now, editable=False)),
@@ -150,7 +150,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.AlterModelOptions(
-            name='reportevent',
+            name='rainfallevent',
             options={'ordering': ['-end_dt']},
         ),
         migrations.CreateModel(
@@ -180,10 +180,6 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name='rtrgobservation',
             constraint=models.UniqueConstraint(fields=('timestamp',), name='rtrgobservation_uniq_timestamp_constraint'),
-        ),
-        migrations.RenameModel(
-            old_name='ReportEvent',
-            new_name='RainfallEvent',
         ),
         migrations.AlterField(
             model_name='garrobservation',
