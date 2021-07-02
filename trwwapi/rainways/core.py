@@ -14,7 +14,6 @@ import numpy as np
 import petl as etl
 from codetiming import Timer
 from dateutil.relativedelta import relativedelta
-import ray
 
 from ..rainfall.api_v3.core import query_one_sensor_rollup_monthly
 from ..rainfall.models import (
@@ -59,7 +58,6 @@ class RwCore():
     def __init__(self) -> None:
         self.status = 'success'
         self.messages = []
-        ray.init()
 
     def clip_cog(
         self, 
@@ -180,8 +178,6 @@ class RwCore():
         
         return True, dissolved
 
-    def shutdown(self):
-        ray.shutdown()
 
 class RwPublicAnalysis(RwCore):
 
@@ -223,9 +219,7 @@ class RwPublicAnalysis(RwCore):
         # instantiate a results dataclass
         self.results = RwPublicResult()
 
-    
-    # @Timer(name="rwpub__soil_summary", text="{name}: {:.4f}s")
-    @ray.remote
+    @Timer(name="rwpub__soil_summary", text="{name}: {:.4f}s")
     def soil_summary(self):
 
         success, result = self.clip_and_dissolve_esri_feature_layer(
@@ -255,10 +249,9 @@ class RwPublicAnalysis(RwCore):
             messages = result['error']['details'] + result['message']
             self.messages.extend(messages)
 
-        return None
+            return None
 
-    # @Timer(name="rwpub__sustain_summary", text="{name}: {:.4f}s")
-    @ray.remote
+    @Timer(name="rwpub__sustain_summary", text="{name}: {:.4f}s")
     def sustain_summary(self):
         success, result = self.clip_and_dissolve_esri_feature_layer(
             feature_layer_query_url=RAINWAYS_RESOURCES['sustain'],
@@ -286,10 +279,9 @@ class RwPublicAnalysis(RwCore):
             messages = result['error']['details'] + result['message']
             self.messages.extend(messages)
 
-        return None
+            return None
 
-    # @Timer(name="rwpub__slope_summary", text="{name}: {:.4f}s")
-    @ray.remote
+    @Timer(name="rwpub__slope_summary", text="{name}: {:.4f}s")
     def slope_summary(self):
 
         success, result = self.clip_cog(
@@ -313,12 +305,9 @@ class RwPublicAnalysis(RwCore):
         else:
             self.status = 'failed'
             self.messages.append(result)
-        
-        return None
 
 
-    # @Timer(name="rwpub__rainfall_summary", text="{name}: {:.4f}s")
-    @ray.remote
+    @Timer(name="rwpub__rainfall_summary", text="{name}: {:.4f}s")
     def rainfall_summary(self):
 
         # get the centroid of all provided geometry in the same coordinate system as the pixels
@@ -348,20 +337,3 @@ class RwPublicAnalysis(RwCore):
             self.status = 'failed'
             self.messages.extend([str(e), "Radar rainfall data is not available for for this location from 3RWW."])
             return None
-
-        return None
-
-
-    def run(self):
-
-        slope_summary = RwPublicAnalysis.slope_summary.remote(self),
-        soil_summary = RwPublicAnalysis.soil_summary.remote(self),
-        sustain_summary = RwPublicAnalysis.sustain_summary.remote(self),
-        rainfall_summary = RwPublicAnalysis.rainfall_summary.remote(self)
-
-        slopes, soils, sustains, rainfalls = ray.get([
-            slope_summary,
-            soil_summary,
-            sustain_summary,
-            rainfall_summary
-        ])
