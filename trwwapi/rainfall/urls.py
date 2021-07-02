@@ -15,7 +15,10 @@ from .views import (
     RtrrObservationViewset, 
     RtrgbservationViewset, 
     RainfallEventViewset,
-    LatestObservationTimestampsSummary
+    LatestObservationTimestampsSummary,
+    get_myrain_24hours,
+    get_myrain_48hours,
+    get_myrain_pastweek
 )
 
 # -----------------------------------------------
@@ -77,6 +80,10 @@ urlpatterns = [
     # --------------------------
     # custom routes (for function-based views)
     # path('v2/latest-observations/', LatestObservationTimestampsSummary.as_view({'get': 'list'})),
+
+    path('v3/myrain/24hours/', get_myrain_24hours),
+    path('v3/myrain/48hours/', get_myrain_48hours),
+    path('v3/myrain/pastweek/', get_myrain_pastweek),
     
     # --------------------------
     # low-level DRF-registered routes

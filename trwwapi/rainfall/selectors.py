@@ -4,7 +4,7 @@ import logging
 import pdb
 import objgraph
 
-from django.utils.timezone import localtime
+from django.utils.timezone import localtime, now
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from rest_framework import status
@@ -392,7 +392,6 @@ def _get_latest(model_class, timestamp_field="timestamp"):
     except (model_class.DoesNotExist, AttributeError):
         return None
 
-
 def get_latest_garrobservation():
     return _get_latest(GarrObservation)
 
@@ -407,3 +406,14 @@ def get_latest_rtrgobservation():
 
 def get_latest_rainfallevent():
     return _get_latest(RainfallEvent, 'start_dt')
+
+def get_rainfall_total_for(postgres_table_model, sensor_ids, back_to: timedelta):
+
+    end_dt = localtime(now(), TZ)
+    start_dt = end_dt - back_to
+
+    rows = query_pgdb(postgres_table_model, sensor_ids, [start_dt, end_dt])
+    if rows:
+        return round(sum(x['val'] for x in rows if x['val']), 1)
+    else:
+        return None

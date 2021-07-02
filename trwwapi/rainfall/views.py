@@ -1,7 +1,10 @@
+from datetime import timedelta
 # from django.contrib.auth.models import User, Group
 from django.utils.safestring import mark_safe
 from django.conf import settings
 from django_filters import filters
+from django.contrib.gis.geos import Point
+from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView
@@ -9,6 +12,8 @@ from rest_framework import viewsets, permissions, routers
 from rest_framework.decorators import api_view
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import FilterSet, DjangoFilterBackend
+
+
 
 from ..common.config import TZI
 # from .api_v2.config import TZI
@@ -26,7 +31,8 @@ from .selectors import (
     get_latest_gaugeobservation,
     get_latest_rainfallevent,
     get_latest_rtrgobservation,
-    get_latest_rtrrobservation
+    get_latest_rtrrobservation,
+    get_rainfall_total_for
 )
 from .models import (
     GarrObservation, 
@@ -209,3 +215,44 @@ class LatestObservationTimestampsSummary(viewsets.ReadOnlyModelViewSet):
         }
 
         return Response(summary)
+
+
+def _get_myrain_for(request, back_to: timedelta, back_to_text: str):
+    text ="That didn't work."
+
+    lat = request.GET.get('lat')
+    lng = request.GET.get('lng')
+    srid = request.GET.get('srid')
+
+    if all([lat, lng]):
+
+        p = Point(float(lng), float(lat)) #, srid=srid if srid else 4326)
+        p.srid = srid if srid else 4326
+        pixels = Pixel.objects.filter(geom__contains=p)
+
+        if len(list(pixels)) > 0:
+
+            total = get_rainfall_total_for(RtrrObservation, [pixel.pixel_id for pixel in pixels], timedelta(days=2))
+
+            if total:
+                text = """According to 3 Rivers Wet Weather, your location received approximately {0} inches of rainfall {1}.""".format(total, back_to_text)
+            else:
+                text = "Sorry, it looks like rainfall data is unavailable for your location for that timeframe. Check back soon!"
+        else:
+            text = "Sorry, we can't get detailed rainfall data for your location."
+    else:        
+        text = "Sorry, you didn't provide enough location data to answer your question."
+
+    # text += " For more information about rainfall and infrastructure in the greater Pittsburgh area, visit w w w dot 3 rivers wet weather dot org."
+    text += " For more information about rainfall and infrastructure in the greater Pittsburgh area, visit www.3riverswetweather.org"
+
+    return render(request, 'speech.html', {"text": text})
+
+def get_myrain_24hours(request):
+    return _get_myrain_for(request, timedelta(days=1), "over the past 24 hours")
+    
+def get_myrain_48hours(request):
+    return _get_myrain_for(request, timedelta(days=2), "over the past 48 hours")
+
+def get_myrain_pastweek(request):
+    return _get_myrain_for(request, timedelta(days=7), "over the past week")
