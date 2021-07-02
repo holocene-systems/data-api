@@ -8,21 +8,12 @@ services:
         volumes:
             - /var/lib/postgresql/data/
         env_file: .env.docker
-    rainfall_db:
-        image: quay.io/azavea/postgis:3-postgres12.2-slim
-        ports: 
-            - "5435:5435"
-        restart: always
-        volumes:
-            - /var/lib/postgresql/data/
-        env_file: .env.docker
     db-init:
         build:
             context: .
             dockerfile: docker/db-init/Dockerfile
         depends_on:
             - db
-            - rainfall_db
         env_file: .env.docker
     app:
         build: 
